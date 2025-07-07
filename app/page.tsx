@@ -35,11 +35,14 @@ import {
   Shield,
 } from "lucide-react"
 import { upload } from "@vercel/blob/client"
-import { supabase, type PlaceRating, type Review, type Profile } from "@/lib/supabase"
+import { supabase, type PlaceRating, type Review, type Profile, type ExtendedReview, type ReviewVote, type Report, type ReportReason } from "@/lib/supabase"
 import { Auth } from "@/components/auth"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { ThemeToggle, MobileThemeToggle } from "@/components/theme-toggle"
 import { SearchFilters, type SearchFilters as SearchFiltersType } from "@/components/search-filters"
+import { CategorySelector } from "@/components/category-selector"
+import { filterPlacesByCategory, getCategoryById } from "@/lib/categories"
+import { Onboarding } from "@/components/onboarding"
 import { AccessibilitySettings } from "@/components/accessibility-settings"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
@@ -168,6 +171,7 @@ function MobileMenu({
   userProfile,
   onProfileClick,
   onSignOut,
+  onShowOnboarding,
   getUserDisplayName,
   getUserInitial,
 }: {
@@ -175,6 +179,7 @@ function MobileMenu({
   userProfile: Profile | null
   onProfileClick: () => void
   onSignOut: () => void
+  onShowOnboarding: () => void
   getUserDisplayName: () => string
   getUserInitial: () => string
 }) {
@@ -208,6 +213,18 @@ function MobileMenu({
             >
               <Settings className="w-5 h-5" />
               Profil bearbeiten
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={(e) => handleAccessibleClick(
+                e.currentTarget, 
+                onShowOnboarding, 
+                "Onboarding und Hilfe anzeigen"
+              )}
+              className="w-full justify-start gap-3"
+            >
+              <CheckCircle className="w-5 h-5" />
+              Hilfe & Onboarding
             </Button>
             <MobileThemeToggle />
           </div>
@@ -244,14 +261,20 @@ export default function AbleCheckApp() {
     sortOrder: "desc",
   })
   const [selectedPlace, setSelectedPlace] = useState<PlaceRating | null>(null)
-  const [placeReviews, setPlaceReviews] = useState<(Review & { profiles: Profile | null })[]>([])
-  const [userReview, setUserReview] = useState<Review | null>(null)
+  const [placeReviews, setPlaceReviews] = useState<ExtendedReview[]>([])
+  const [userReview, setUserReview] = useState<ExtendedReview | null>(null)
+  const [reportingReviewId, setReportingReviewId] = useState<string | null>(null)
+  const [selectedReportReason, setSelectedReportReason] = useState<ReportReason | ''>('')
+  const [reportDescription, setReportDescription] = useState('')
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false)
+  const [submittedReports, setSubmittedReports] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [showImageGallery, setShowImageGallery] = useState(false)
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [formData, setFormData] = useState({
     placeName: "",
     address: "",
+    categories: [] as string[],
     ratings: {
       wheelchairAccess: 0,
       entranceAccess: 0,
@@ -273,6 +296,7 @@ export default function AbleCheckApp() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [contentWarning, setContentWarning] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const { handleAccessibleClick, announcePageChange, announceFormField } = useAccessibilityMode()
 
@@ -303,8 +327,10 @@ export default function AbleCheckApp() {
       filtered = filtered.filter((place) => place.review_count >= searchFilters.minReviews)
     }
 
-    // Category filtering would need to be implemented with place categories
-    // For now, we'll skip this as it requires database schema changes
+    // Apply category filtering
+    if (searchFilters.categories.length > 0) {
+      filtered = filterPlacesByCategory(filtered, searchFilters.categories)
+    }
 
     // Sort results
     filtered.sort((a, b) => {
@@ -339,7 +365,15 @@ export default function AbleCheckApp() {
     })
 
     return filtered
-  }, [places, searchQuery, searchFilters])
+  }, [
+    places, 
+    searchQuery, 
+    searchFilters.minRating,
+    searchFilters.minReviews,
+    searchFilters.categories,
+    searchFilters.sortBy,
+    searchFilters.sortOrder
+  ]) // Destructured searchFilters to prevent unnecessary re-calculations
 
   useEffect(() => {
     setFilteredPlaces(processedPlaces)
@@ -355,6 +389,12 @@ export default function AbleCheckApp() {
 
       if (session?.user) {
         await loadUserProfile(session.user.id)
+        
+        // Check if user has completed onboarding
+        const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
+        if (!hasCompletedOnboarding) {
+          setShowOnboarding(true)
+        }
       }
 
       setLoading(false)
@@ -368,6 +408,12 @@ export default function AbleCheckApp() {
       setUser(session?.user ?? null)
       if (session?.user) {
         await loadUserProfile(session.user.id)
+        
+        // Check if user has completed onboarding
+        const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
+        if (!hasCompletedOnboarding) {
+          setShowOnboarding(true)
+        }
       } else {
         setUserProfile(null)
       }
@@ -400,8 +446,10 @@ export default function AbleCheckApp() {
       "place-detail": "Ortsdetails",
       profile: "Profil bearbeiten",
     }
-    announcePageChange(pageNames[view])
-  }, [view, announcePageChange])
+    if (announcePageChange && pageNames[view]) {
+      announcePageChange(pageNames[view])
+    }
+  }, [view]) // Removed announcePageChange from dependencies to prevent infinite loop
 
   // Load user profile
   const loadUserProfile = async (userId: string) => {
@@ -426,13 +474,20 @@ export default function AbleCheckApp() {
     }
   }
 
-  // Load places from Supabase
+  // Load places from Supabase with timeout and better error handling
   const loadPlaces = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const { data, error } = await supabase.from("place_ratings").select("*").order("created_at", { ascending: false })
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      )
+
+      const dataPromise = supabase.from("place_ratings").select("*").order("created_at", { ascending: false })
+
+      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any
 
       if (error) {
         console.error("Error loading places:", error)
@@ -441,48 +496,101 @@ export default function AbleCheckApp() {
       }
 
       setPlaces(data || [])
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading places:", error)
-      setError("Unerwarteter Fehler beim Laden der Orte")
+      if (error.message === 'Request timeout') {
+        setError("Die Verbindung ist zu langsam. Bitte versuchen Sie es erneut.")
+      } else {
+        setError("Unerwarteter Fehler beim Laden der Orte")
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  // Load reviews for a specific place
+  // Load reviews for a specific place with vote counts
   const loadPlaceReviews = async (placeId: string) => {
     try {
+      // Load reviews with enhanced data
       const { data: reviewsData, error: reviewsError } = await supabase
-        .from("reviews")
+        .from("reviews_with_votes")
         .select("*")
         .eq("place_id", placeId)
+        .order("helpfulness_score", { ascending: false })
         .order("created_at", { ascending: false })
 
       if (reviewsError) {
         console.error("Error loading reviews:", reviewsError)
+        // Fallback to basic reviews if view doesn't exist yet
+        const { data: basicReviews, error: basicError } = await supabase
+          .from("reviews")
+          .select("*")
+          .eq("place_id", placeId)
+          .order("created_at", { ascending: false })
+
+        if (basicError) {
+          console.error("Error loading basic reviews:", basicError)
+          return
+        }
+
+        const userIds = basicReviews?.map((review) => review.user_id).filter(Boolean) || []
+        let profilesData: Profile[] = []
+
+        if (userIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").in("id", userIds)
+          if (!profilesError) {
+            profilesData = profiles || []
+          }
+        }
+
+        const reviewsWithProfiles = basicReviews?.map((review) => ({
+          ...review,
+          profiles: profilesData.find((profile) => profile.id === review.user_id) || null,
+          helpful_count: 0,
+          not_helpful_count: 0,
+          helpfulness_score: 0,
+          user_vote: null
+        })) || []
+
+        setPlaceReviews(reviewsWithProfiles)
+
+        if (user) {
+          const existingReview = reviewsWithProfiles.find((review) => review.user_id === user.id)
+          setUserReview(existingReview || null)
+        }
         return
       }
 
-      const userIds = reviewsData?.map((review) => review.user_id).filter(Boolean) || []
-      let profilesData: Profile[] = []
-
-      if (userIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").in("id", userIds)
-        if (!profilesError) {
-          profilesData = profiles || []
-        }
+      // Get user votes if logged in
+      let userVotes: ReviewVote[] = []
+      if (user && reviewsData) {
+        const { data: votes } = await supabase
+          .from("review_votes")
+          .select("*")
+          .eq("user_id", user.id)
+          .in("review_id", reviewsData.map(r => r.id))
+        
+        userVotes = votes || []
       }
 
-      const reviewsWithProfiles =
-        reviewsData?.map((review) => ({
-          ...review,
-          profiles: profilesData.find((profile) => profile.id === review.user_id) || null,
-        })) || []
+      const reviewsWithVotes = reviewsData?.map((review) => ({
+        ...review,
+        profiles: {
+          id: review.user_id,
+          username: review.username,
+          full_name: review.full_name,
+          avatar_url: review.avatar_url,
+          is_verified: review.is_verified,
+          created_at: '',
+          updated_at: ''
+        },
+        user_vote: userVotes.find(vote => vote.review_id === review.id)?.is_helpful || null
+      })) || []
 
-      setPlaceReviews(reviewsWithProfiles)
+      setPlaceReviews(reviewsWithVotes)
 
       if (user) {
-        const existingReview = reviewsWithProfiles.find((review) => review.user_id === user.id)
+        const existingReview = reviewsWithVotes.find((review) => review.user_id === user.id)
         setUserReview(existingReview || null)
       }
     } catch (error) {
@@ -494,7 +602,7 @@ export default function AbleCheckApp() {
     if (user) {
       loadPlaces()
     }
-  }, [user])
+  }, [user?.id]) // Use user.id instead of user object to prevent unnecessary re-renders
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -656,12 +764,24 @@ export default function AbleCheckApp() {
 
       if (existingPlace) {
         placeId = existingPlace.id
+        
+        // Update categories for existing place if provided
+        if (formData.categories.length > 0) {
+          await supabase
+            .from("places")
+            .update({
+              categories: formData.categories,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingPlace.id)
+        }
       } else {
         const { data: newPlace, error: placeError } = await supabase
           .from("places")
           .insert({
             name: formData.placeName,
             address: formData.address || null,
+            categories: formData.categories.length > 0 ? formData.categories : null,
           })
           .select("id")
           .single()
@@ -690,6 +810,7 @@ export default function AbleCheckApp() {
       setFormData({
         placeName: "",
         address: "",
+        categories: [],
         ratings: {
           wheelchairAccess: 0,
           entranceAccess: 0,
@@ -808,6 +929,241 @@ export default function AbleCheckApp() {
     if (userProfile?.full_name) return userProfile.full_name.charAt(0).toUpperCase()
     if (userProfile?.username) return userProfile.username.charAt(0).toUpperCase()
     return user?.email?.charAt(0).toUpperCase() || "B"
+  }
+
+  // Helper functions for new features
+  const handleHelpfulVote = async (reviewId: string, isHelpful: boolean) => {
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('review_votes')
+        .upsert({
+          review_id: reviewId,
+          user_id: user.id,
+          is_helpful: isHelpful
+        })
+
+      if (error) throw error
+
+      // Reload reviews to get updated vote counts
+      if (selectedPlace) {
+        await loadPlaceReviews(selectedPlace.id)
+      }
+    } catch (error) {
+      console.error('Error voting on review:', error)
+    }
+  }
+
+  const handleReport = async (contentType: 'review' | 'profile' | 'place', contentId: string, reportedUserId?: string) => {
+    if (!user || !selectedReportReason) return
+
+    setIsSubmittingReport(true)
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          reported_content_type: contentType,
+          reported_content_id: contentId,
+          reporter_user_id: user.id,
+          reported_user_id: reportedUserId || null,
+          reason: selectedReportReason,
+          description: reportDescription.trim() || null
+        })
+
+      if (error) {
+        if (error.code === '23505') {
+          alert('Sie haben diesen Inhalt bereits gemeldet.')
+          return
+        }
+        throw error
+      }
+
+      setSubmittedReports(prev => new Set([...prev, contentId]))
+      setReportingReviewId(null)
+      setSelectedReportReason('')
+      setReportDescription('')
+      alert('Meldung erfolgreich eingereicht. Vielen Dank für Ihr Feedback.')
+
+    } catch (error: any) {
+      console.error('Error submitting report:', error)
+      alert(error.message || 'Fehler beim Senden der Meldung. Bitte versuchen Sie es erneut.')
+    } finally {
+      setIsSubmittingReport(false)
+    }
+  }
+
+  const VerifiedBadge = ({ profile }: { profile: Profile | null }) => {
+    if (!profile?.is_verified) return null
+    
+    return (
+      <span 
+        className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-full px-2 py-1 text-xs"
+        title={`Verifizierter Benutzer${profile.verification_reason ? ` - ${profile.verification_reason}` : ''}`}
+      >
+        🛡️ Verifiziert
+      </span>
+    )
+  }
+
+  const HelpfulVoting = ({ review }: { review: ExtendedReview }) => {
+    if (!user || user.id === review.user_id || review.is_anonymous) {
+      if ((review.helpful_count || 0) > 0 || (review.not_helpful_count || 0) > 0) {
+        return (
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            {(review.helpful_count || 0) > 0 && <span>👍 {review.helpful_count}</span>}
+            {(review.not_helpful_count || 0) > 0 && <span>👎 {review.not_helpful_count}</span>}
+          </div>
+        )
+      }
+      return null
+    }
+
+    return (
+      <div className="flex items-center gap-3 text-sm">
+        <span className="text-muted-foreground">Hilfreich?</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleHelpfulVote(review.id, true)}
+            className="flex items-center gap-1 px-2 py-1 rounded border hover:bg-accent transition-colors"
+          >
+            👍 {review.helpful_count || 0}
+          </button>
+          <button
+            onClick={() => handleHelpfulVote(review.id, false)}
+            className="flex items-center gap-1 px-2 py-1 rounded border hover:bg-accent transition-colors"
+          >
+            👎 {review.not_helpful_count || 0}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const ReportButton = ({ reviewId, reportedUserId }: { reviewId: string; reportedUserId: string }) => {
+    if (!user || user.id === reportedUserId || submittedReports.has(reviewId)) {
+      return submittedReports.has(reviewId) ? (
+        <span className="text-xs text-green-600">✅ Gemeldet</span>
+      ) : null
+    }
+
+    return (
+      <button
+        onClick={() => setReportingReviewId(reviewId)}
+        className="text-xs text-muted-foreground hover:text-red-600 transition-colors"
+      >
+        📢 Melden
+      </button>
+    )
+  }
+
+  const ReportModal = () => {
+    if (!reportingReviewId) return null
+
+    const reportReasons = [
+      { value: 'inappropriate_content', label: 'Unangemessener Inhalt' },
+      { value: 'spam', label: 'Spam' },
+      { value: 'harassment', label: 'Belästigung' },
+      { value: 'false_information', label: 'Falsche Informationen' },
+      { value: 'hate_speech', label: 'Hassrede' },
+      { value: 'other', label: 'Sonstiges' }
+    ]
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="bg-background border rounded-lg p-6 max-w-md w-full">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold">Inhalt melden</h3>
+            <button
+              onClick={() => setReportingReviewId(null)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Grund der Meldung:</label>
+              <div className="space-y-2 mt-2">
+                {reportReasons.map((reason) => (
+                  <label key={reason.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="reason"
+                      value={reason.value}
+                      checked={selectedReportReason === reason.value}
+                      onChange={(e) => setSelectedReportReason(e.target.value as ReportReason)}
+                    />
+                    <span className="text-sm">{reason.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {selectedReportReason === 'other' && (
+              <div>
+                <label className="text-sm font-medium">Beschreibung:</label>
+                <textarea
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  placeholder="Bitte beschreiben Sie den Grund..."
+                  className="w-full mt-1 px-3 py-2 border rounded text-sm"
+                  rows={3}
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const review = placeReviews.find(r => r.id === reportingReviewId)
+                  if (review) {
+                    handleReport('review', reportingReviewId, review.user_id)
+                  }
+                }}
+                disabled={!selectedReportReason || isSubmittingReport}
+                className={`px-4 py-2 text-sm rounded transition-colors ${
+                  !selectedReportReason || isSubmittingReport
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                {isSubmittingReport ? 'Senden...' : 'Melden'}
+              </button>
+              <button
+                onClick={() => setReportingReviewId(null)}
+                className="px-4 py-2 text-sm border rounded hover:bg-accent"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Onboarding handlers
+  const handleOnboardingComplete = () => {
+    if (user) {
+      localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
+    }
+    setShowOnboarding(false)
+    if (announceAction) {
+      announceAction("Onboarding abgeschlossen - Willkommen bei AbleCheck!")
+    }
+  }
+
+  const handleOnboardingSkip = () => {
+    if (user) {
+      localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
+    }
+    setShowOnboarding(false)
+    if (announceAction) {
+      announceAction("Onboarding übersprungen")
+    }
   }
 
   if (!isHydrated) {
@@ -1175,6 +1531,7 @@ export default function AbleCheckApp() {
                           <p className="font-medium flex items-center gap-2 truncate">
                             {getDisplayName(review)}
                             {review.is_anonymous && <EyeOff className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                            {!review.is_anonymous && review.profiles && <VerifiedBadge profile={review.profiles} />}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {new Date(review.created_at).toLocaleDateString("de-DE")}
@@ -1256,6 +1613,12 @@ export default function AbleCheckApp() {
                         </div>
                       </div>
                     )}
+
+                    {/* Helpful Voting and Report Button */}
+                    <div className="border-t pt-3 flex items-center justify-between">
+                      <HelpfulVoting review={review} />
+                      <ReportButton reviewId={review.id} reportedUserId={review.user_id} />
+                    </div>
                   </CardContent>
                 </Card>
               ))
@@ -1265,6 +1628,9 @@ export default function AbleCheckApp() {
 
         {/* Image Gallery Modal */}
         {showImageGallery && <MobileImageGallery images={galleryImages} onClose={() => setShowImageGallery(false)} />}
+        
+        {/* Report Modal */}
+        <ReportModal />
       </div>
     )
   }
@@ -1331,6 +1697,23 @@ export default function AbleCheckApp() {
                       }}
                       placeholder="z.B. Hauptstraße 123, 10115 Berlin"
                       className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                {/* Categories */}
+                <div className="space-y-4">
+                  <div>
+                    <Label>Kategorien auswählen</Label>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Wählen Sie passende Kategorien für diesen Ort aus
+                    </p>
+                    <CategorySelector
+                      selectedCategories={formData.categories}
+                      onCategoryChange={(categories) => {
+                        setFormData({ ...formData, categories })
+                        announceFormField("Kategorien", "Kategorienauswahl", `${categories.length} Kategorien ausgewählt`)
+                      }}
                     />
                   </div>
                 </div>
@@ -1566,6 +1949,18 @@ export default function AbleCheckApp() {
               <Settings className="w-4 h-4 mr-2" />
               Profil
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => handleAccessibleClick(
+                e.currentTarget, 
+                () => setShowOnboarding(true), 
+                "Onboarding erneut anzeigen"
+              )}
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Hilfe
+            </Button>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               <LogOut className="w-4 h-4 mr-2" />
               Abmelden
@@ -1573,14 +1968,15 @@ export default function AbleCheckApp() {
           </div>
 
           {/* Mobile Navigation */}
-          <MobileMenu
-            user={user}
-            userProfile={userProfile}
-            onProfileClick={() => setView("profile")}
-            onSignOut={handleSignOut}
-            getUserDisplayName={getUserDisplayName}
-            getUserInitial={getUserInitial}
-          />
+                      <MobileMenu
+              user={user}
+              userProfile={userProfile}
+              onProfileClick={() => setView("profile")}
+              onSignOut={handleSignOut}
+              onShowOnboarding={() => setShowOnboarding(true)}
+              getUserDisplayName={getUserDisplayName}
+              getUserInitial={getUserInitial}
+            />
         </div>
       </div>
 
@@ -1609,12 +2005,40 @@ export default function AbleCheckApp() {
             />
             <AccessibilitySettings />
           </div>
+
+          {/* Debug Info für Kategorienfilterung */}
+          {searchFilters.categories.length > 0 && filteredPlaces.length === 0 && places.length > 0 && (
+            <Card className="border-dashed border-orange-300 bg-orange-50 dark:bg-orange-950">
+              <CardContent className="pt-4">
+                <div className="text-sm space-y-2">
+                  <p className="font-medium text-orange-800 dark:text-orange-200">
+                    🐛 Debug: Kategorienfilterung
+                  </p>
+                  <div className="text-orange-700 dark:text-orange-300 space-y-1 text-xs">
+                    <p>• Orte gesamt: {places.length}</p>
+                    <p>• Mit Kategorien: {places.filter(p => p.categories?.length > 0).length}</p>
+                    <p>• Ohne Kategorien: {places.filter(p => !p.categories || p.categories.length === 0).length}</p>
+                    <p>• Ausgewählte Filter: {searchFilters.categories.map(id => getCategoryById(id)?.name || id).join(", ")}</p>
+                  </div>
+                  <p className="text-orange-600 dark:text-orange-400 text-xs">
+                    💡 Führen Sie "database-migration-categories.sql" und "test-categories-setup.sql" aus.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {searchQuery && (
-          <p className="text-sm text-muted-foreground">
-            {filteredPlaces.length} von {places.length} Orten gefunden
-          </p>
+        {(searchQuery || searchFilters.categories.length > 0 || searchFilters.minRating > 0 || searchFilters.minReviews > 0) && (
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>{filteredPlaces.length} von {places.length} Orten gefunden</p>
+            {searchFilters.categories.length > 0 && filteredPlaces.length === 0 && places.length > 0 && (
+              <p className="text-amber-600 dark:text-amber-400">
+                💡 Tipp: Möglicherweise haben die vorhandenen Orte noch keine Kategorien zugewiesen. 
+                Führen Sie das SQL-Script "test-categories-setup.sql" aus, um Testkategorien hinzuzufügen.
+              </p>
+            )}
+          </div>
         )}
 
         {/* Add Review Button */}
@@ -1673,6 +2097,30 @@ export default function AbleCheckApp() {
                         <span className="truncate">{place.name}</span>
                       </CardTitle>
                       {place.address && <CardDescription className="truncate">{place.address}</CardDescription>}
+                      {place.categories && place.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {place.categories.slice(0, 3).map((categoryId: string) => {
+                            const category = getCategoryById(categoryId)
+                            if (!category) return null
+                            return (
+                              <Badge
+                                key={categoryId}
+                                variant="outline"
+                                className="text-xs px-2 py-0.5 h-auto"
+                                style={{ borderColor: category.color }}
+                              >
+                                <span className="mr-1">{category.icon}</span>
+                                {category.name}
+                              </Badge>
+                            )
+                          })}
+                          {place.categories.length > 3 && (
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 h-auto">
+                              +{place.categories.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
                       <Badge className={getRatingColor(place.avg_overall_rating)}>
@@ -1718,6 +2166,13 @@ export default function AbleCheckApp() {
           </div>
         )}
       </div>
+
+      {/* Onboarding */}
+      <Onboarding
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onSkip={handleOnboardingSkip}
+      />
     </div>
   )
 }
