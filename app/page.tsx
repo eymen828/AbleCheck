@@ -42,6 +42,7 @@ import { ThemeToggle, MobileThemeToggle } from "@/components/theme-toggle"
 import { SearchFilters, type SearchFilters as SearchFiltersType } from "@/components/search-filters"
 import { CategorySelector } from "@/components/category-selector"
 import { filterPlacesByCategory, getCategoryById } from "@/lib/categories"
+import { Onboarding } from "@/components/onboarding"
 import { AccessibilitySettings } from "@/components/accessibility-settings"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
@@ -170,6 +171,7 @@ function MobileMenu({
   userProfile,
   onProfileClick,
   onSignOut,
+  onShowOnboarding,
   getUserDisplayName,
   getUserInitial,
 }: {
@@ -177,6 +179,7 @@ function MobileMenu({
   userProfile: Profile | null
   onProfileClick: () => void
   onSignOut: () => void
+  onShowOnboarding: () => void
   getUserDisplayName: () => string
   getUserInitial: () => string
 }) {
@@ -210,6 +213,18 @@ function MobileMenu({
             >
               <Settings className="w-5 h-5" />
               Profil bearbeiten
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={(e) => handleAccessibleClick(
+                e.currentTarget, 
+                onShowOnboarding, 
+                "Onboarding und Hilfe anzeigen"
+              )}
+              className="w-full justify-start gap-3"
+            >
+              <CheckCircle className="w-5 h-5" />
+              Hilfe & Onboarding
             </Button>
             <MobileThemeToggle />
           </div>
@@ -276,6 +291,7 @@ export default function AbleCheckApp() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [contentWarning, setContentWarning] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const { handleAccessibleClick, announcePageChange, announceFormField } = useAccessibilityMode()
 
@@ -360,6 +376,12 @@ export default function AbleCheckApp() {
 
       if (session?.user) {
         await loadUserProfile(session.user.id)
+        
+        // Check if user has completed onboarding
+        const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
+        if (!hasCompletedOnboarding) {
+          setShowOnboarding(true)
+        }
       }
 
       setLoading(false)
@@ -373,6 +395,12 @@ export default function AbleCheckApp() {
       setUser(session?.user ?? null)
       if (session?.user) {
         await loadUserProfile(session.user.id)
+        
+        // Check if user has completed onboarding
+        const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
+        if (!hasCompletedOnboarding) {
+          setShowOnboarding(true)
+        }
       } else {
         setUserProfile(null)
       }
@@ -826,6 +854,23 @@ export default function AbleCheckApp() {
     if (userProfile?.full_name) return userProfile.full_name.charAt(0).toUpperCase()
     if (userProfile?.username) return userProfile.username.charAt(0).toUpperCase()
     return user?.email?.charAt(0).toUpperCase() || "B"
+  }
+
+  // Onboarding handlers
+  const handleOnboardingComplete = () => {
+    if (user) {
+      localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
+    }
+    setShowOnboarding(false)
+    announceAction("Onboarding abgeschlossen - Willkommen bei AbleCheck!")
+  }
+
+  const handleOnboardingSkip = () => {
+    if (user) {
+      localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
+    }
+    setShowOnboarding(false)
+    announceAction("Onboarding übersprungen")
   }
 
   if (!isHydrated) {
@@ -1601,6 +1646,18 @@ export default function AbleCheckApp() {
               <Settings className="w-4 h-4 mr-2" />
               Profil
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => handleAccessibleClick(
+                e.currentTarget, 
+                () => setShowOnboarding(true), 
+                "Onboarding erneut anzeigen"
+              )}
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Hilfe
+            </Button>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               <LogOut className="w-4 h-4 mr-2" />
               Abmelden
@@ -1613,6 +1670,7 @@ export default function AbleCheckApp() {
             userProfile={userProfile}
             onProfileClick={() => setView("profile")}
             onSignOut={handleSignOut}
+            onShowOnboarding={() => setShowOnboarding(true)}
             getUserDisplayName={getUserDisplayName}
             getUserInitial={getUserInitial}
           />
@@ -1805,6 +1863,13 @@ export default function AbleCheckApp() {
           </div>
         )}
       </div>
+
+      {/* Onboarding */}
+      <Onboarding
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onSkip={handleOnboardingSkip}
+      />
     </div>
   )
 }
