@@ -1644,12 +1644,40 @@ export default function AbleCheckApp() {
             />
             <AccessibilitySettings />
           </div>
+
+          {/* Debug Info für Kategorienfilterung */}
+          {searchFilters.categories.length > 0 && filteredPlaces.length === 0 && places.length > 0 && (
+            <Card className="border-dashed border-orange-300 bg-orange-50 dark:bg-orange-950">
+              <CardContent className="pt-4">
+                <div className="text-sm space-y-2">
+                  <p className="font-medium text-orange-800 dark:text-orange-200">
+                    🐛 Debug: Kategorienfilterung
+                  </p>
+                  <div className="text-orange-700 dark:text-orange-300 space-y-1 text-xs">
+                    <p>• Orte gesamt: {places.length}</p>
+                    <p>• Mit Kategorien: {places.filter(p => p.categories?.length > 0).length}</p>
+                    <p>• Ohne Kategorien: {places.filter(p => !p.categories || p.categories.length === 0).length}</p>
+                    <p>• Ausgewählte Filter: {searchFilters.categories.map(id => getCategoryById(id)?.name || id).join(", ")}</p>
+                  </div>
+                  <p className="text-orange-600 dark:text-orange-400 text-xs">
+                    💡 Führen Sie "database-migration-categories.sql" und "test-categories-setup.sql" aus.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {searchQuery && (
-          <p className="text-sm text-muted-foreground">
-            {filteredPlaces.length} von {places.length} Orten gefunden
-          </p>
+        {(searchQuery || searchFilters.categories.length > 0 || searchFilters.minRating > 0 || searchFilters.minReviews > 0) && (
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>{filteredPlaces.length} von {places.length} Orten gefunden</p>
+            {searchFilters.categories.length > 0 && filteredPlaces.length === 0 && places.length > 0 && (
+              <p className="text-amber-600 dark:text-amber-400">
+                💡 Tipp: Möglicherweise haben die vorhandenen Orte noch keine Kategorien zugewiesen. 
+                Führen Sie das SQL-Script "test-categories-setup.sql" aus, um Testkategorien hinzuzufügen.
+              </p>
+            )}
+          </div>
         )}
 
         {/* Add Review Button */}
