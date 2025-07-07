@@ -35,7 +35,7 @@ import {
   Shield,
 } from "lucide-react"
 import { upload } from "@vercel/blob/client"
-import { supabase, type PlaceRating, type Review, type Profile } from "@/lib/supabase"
+import { supabase, type PlaceRating, type Review, type Profile, type ExtendedReview, type ReviewVote, type Report, type ReportReason } from "@/lib/supabase"
 import { Auth } from "@/components/auth"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { ThemeToggle, MobileThemeToggle } from "@/components/theme-toggle"
@@ -261,8 +261,13 @@ export default function AbleCheckApp() {
     sortOrder: "desc",
   })
   const [selectedPlace, setSelectedPlace] = useState<PlaceRating | null>(null)
-  const [placeReviews, setPlaceReviews] = useState<(Review & { profiles: Profile | null })[]>([])
-  const [userReview, setUserReview] = useState<Review | null>(null)
+  const [placeReviews, setPlaceReviews] = useState<ExtendedReview[]>([])
+  const [userReview, setUserReview] = useState<ExtendedReview | null>(null)
+  const [reportingReviewId, setReportingReviewId] = useState<string | null>(null)
+  const [selectedReportReason, setSelectedReportReason] = useState<ReportReason | ''>('')
+  const [reportDescription, setReportDescription] = useState('')
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false)
+  const [submittedReports, setSubmittedReports] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [showImageGallery, setShowImageGallery] = useState(false)
   const [galleryImages, setGalleryImages] = useState<string[]>([])
@@ -503,40 +508,89 @@ export default function AbleCheckApp() {
     }
   }
 
-  // Load reviews for a specific place
+  // Load reviews for a specific place with vote counts
   const loadPlaceReviews = async (placeId: string) => {
     try {
+      // Load reviews with enhanced data
       const { data: reviewsData, error: reviewsError } = await supabase
-        .from("reviews")
+        .from("reviews_with_votes")
         .select("*")
         .eq("place_id", placeId)
+        .order("helpfulness_score", { ascending: false })
         .order("created_at", { ascending: false })
 
       if (reviewsError) {
         console.error("Error loading reviews:", reviewsError)
+        // Fallback to basic reviews if view doesn't exist yet
+        const { data: basicReviews, error: basicError } = await supabase
+          .from("reviews")
+          .select("*")
+          .eq("place_id", placeId)
+          .order("created_at", { ascending: false })
+
+        if (basicError) {
+          console.error("Error loading basic reviews:", basicError)
+          return
+        }
+
+        const userIds = basicReviews?.map((review) => review.user_id).filter(Boolean) || []
+        let profilesData: Profile[] = []
+
+        if (userIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").in("id", userIds)
+          if (!profilesError) {
+            profilesData = profiles || []
+          }
+        }
+
+        const reviewsWithProfiles = basicReviews?.map((review) => ({
+          ...review,
+          profiles: profilesData.find((profile) => profile.id === review.user_id) || null,
+          helpful_count: 0,
+          not_helpful_count: 0,
+          helpfulness_score: 0,
+          user_vote: null
+        })) || []
+
+        setPlaceReviews(reviewsWithProfiles)
+
+        if (user) {
+          const existingReview = reviewsWithProfiles.find((review) => review.user_id === user.id)
+          setUserReview(existingReview || null)
+        }
         return
       }
 
-      const userIds = reviewsData?.map((review) => review.user_id).filter(Boolean) || []
-      let profilesData: Profile[] = []
-
-      if (userIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").in("id", userIds)
-        if (!profilesError) {
-          profilesData = profiles || []
-        }
+      // Get user votes if logged in
+      let userVotes: ReviewVote[] = []
+      if (user && reviewsData) {
+        const { data: votes } = await supabase
+          .from("review_votes")
+          .select("*")
+          .eq("user_id", user.id)
+          .in("review_id", reviewsData.map(r => r.id))
+        
+        userVotes = votes || []
       }
 
-      const reviewsWithProfiles =
-        reviewsData?.map((review) => ({
-          ...review,
-          profiles: profilesData.find((profile) => profile.id === review.user_id) || null,
-        })) || []
+      const reviewsWithVotes = reviewsData?.map((review) => ({
+        ...review,
+        profiles: {
+          id: review.user_id,
+          username: review.username,
+          full_name: review.full_name,
+          avatar_url: review.avatar_url,
+          is_verified: review.is_verified,
+          created_at: '',
+          updated_at: ''
+        },
+        user_vote: userVotes.find(vote => vote.review_id === review.id)?.is_helpful || null
+      })) || []
 
-      setPlaceReviews(reviewsWithProfiles)
+      setPlaceReviews(reviewsWithVotes)
 
       if (user) {
-        const existingReview = reviewsWithProfiles.find((review) => review.user_id === user.id)
+        const existingReview = reviewsWithVotes.find((review) => review.user_id === user.id)
         setUserReview(existingReview || null)
       }
     } catch (error) {
@@ -875,6 +929,220 @@ export default function AbleCheckApp() {
     if (userProfile?.full_name) return userProfile.full_name.charAt(0).toUpperCase()
     if (userProfile?.username) return userProfile.username.charAt(0).toUpperCase()
     return user?.email?.charAt(0).toUpperCase() || "B"
+  }
+
+  // Helper functions for new features
+  const handleHelpfulVote = async (reviewId: string, isHelpful: boolean) => {
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('review_votes')
+        .upsert({
+          review_id: reviewId,
+          user_id: user.id,
+          is_helpful: isHelpful
+        })
+
+      if (error) throw error
+
+      // Reload reviews to get updated vote counts
+      if (selectedPlace) {
+        await loadPlaceReviews(selectedPlace.id)
+      }
+    } catch (error) {
+      console.error('Error voting on review:', error)
+    }
+  }
+
+  const handleReport = async (contentType: 'review' | 'profile' | 'place', contentId: string, reportedUserId?: string) => {
+    if (!user || !selectedReportReason) return
+
+    setIsSubmittingReport(true)
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          reported_content_type: contentType,
+          reported_content_id: contentId,
+          reporter_user_id: user.id,
+          reported_user_id: reportedUserId || null,
+          reason: selectedReportReason,
+          description: reportDescription.trim() || null
+        })
+
+      if (error) {
+        if (error.code === '23505') {
+          alert('Sie haben diesen Inhalt bereits gemeldet.')
+          return
+        }
+        throw error
+      }
+
+      setSubmittedReports(prev => new Set([...prev, contentId]))
+      setReportingReviewId(null)
+      setSelectedReportReason('')
+      setReportDescription('')
+      alert('Meldung erfolgreich eingereicht. Vielen Dank für Ihr Feedback.')
+
+    } catch (error: any) {
+      console.error('Error submitting report:', error)
+      alert(error.message || 'Fehler beim Senden der Meldung. Bitte versuchen Sie es erneut.')
+    } finally {
+      setIsSubmittingReport(false)
+    }
+  }
+
+  const VerifiedBadge = ({ profile }: { profile: Profile | null }) => {
+    if (!profile?.is_verified) return null
+    
+    return (
+      <span 
+        className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-full px-2 py-1 text-xs"
+        title={`Verifizierter Benutzer${profile.verification_reason ? ` - ${profile.verification_reason}` : ''}`}
+      >
+        🛡️ Verifiziert
+      </span>
+    )
+  }
+
+  const HelpfulVoting = ({ review }: { review: ExtendedReview }) => {
+    if (!user || user.id === review.user_id || review.is_anonymous) {
+      if ((review.helpful_count || 0) > 0 || (review.not_helpful_count || 0) > 0) {
+        return (
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            {(review.helpful_count || 0) > 0 && <span>👍 {review.helpful_count}</span>}
+            {(review.not_helpful_count || 0) > 0 && <span>👎 {review.not_helpful_count}</span>}
+          </div>
+        )
+      }
+      return null
+    }
+
+    return (
+      <div className="flex items-center gap-3 text-sm">
+        <span className="text-muted-foreground">Hilfreich?</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleHelpfulVote(review.id, true)}
+            className="flex items-center gap-1 px-2 py-1 rounded border hover:bg-accent transition-colors"
+          >
+            👍 {review.helpful_count || 0}
+          </button>
+          <button
+            onClick={() => handleHelpfulVote(review.id, false)}
+            className="flex items-center gap-1 px-2 py-1 rounded border hover:bg-accent transition-colors"
+          >
+            👎 {review.not_helpful_count || 0}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const ReportButton = ({ reviewId, reportedUserId }: { reviewId: string; reportedUserId: string }) => {
+    if (!user || user.id === reportedUserId || submittedReports.has(reviewId)) {
+      return submittedReports.has(reviewId) ? (
+        <span className="text-xs text-green-600">✅ Gemeldet</span>
+      ) : null
+    }
+
+    return (
+      <button
+        onClick={() => setReportingReviewId(reviewId)}
+        className="text-xs text-muted-foreground hover:text-red-600 transition-colors"
+      >
+        📢 Melden
+      </button>
+    )
+  }
+
+  const ReportModal = () => {
+    if (!reportingReviewId) return null
+
+    const reportReasons = [
+      { value: 'inappropriate_content', label: 'Unangemessener Inhalt' },
+      { value: 'spam', label: 'Spam' },
+      { value: 'harassment', label: 'Belästigung' },
+      { value: 'false_information', label: 'Falsche Informationen' },
+      { value: 'hate_speech', label: 'Hassrede' },
+      { value: 'other', label: 'Sonstiges' }
+    ]
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="bg-background border rounded-lg p-6 max-w-md w-full">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold">Inhalt melden</h3>
+            <button
+              onClick={() => setReportingReviewId(null)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Grund der Meldung:</label>
+              <div className="space-y-2 mt-2">
+                {reportReasons.map((reason) => (
+                  <label key={reason.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="reason"
+                      value={reason.value}
+                      checked={selectedReportReason === reason.value}
+                      onChange={(e) => setSelectedReportReason(e.target.value as ReportReason)}
+                    />
+                    <span className="text-sm">{reason.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {selectedReportReason === 'other' && (
+              <div>
+                <label className="text-sm font-medium">Beschreibung:</label>
+                <textarea
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  placeholder="Bitte beschreiben Sie den Grund..."
+                  className="w-full mt-1 px-3 py-2 border rounded text-sm"
+                  rows={3}
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const review = placeReviews.find(r => r.id === reportingReviewId)
+                  if (review) {
+                    handleReport('review', reportingReviewId, review.user_id)
+                  }
+                }}
+                disabled={!selectedReportReason || isSubmittingReport}
+                className={`px-4 py-2 text-sm rounded transition-colors ${
+                  !selectedReportReason || isSubmittingReport
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                {isSubmittingReport ? 'Senden...' : 'Melden'}
+              </button>
+              <button
+                onClick={() => setReportingReviewId(null)}
+                className="px-4 py-2 text-sm border rounded hover:bg-accent"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Onboarding handlers
@@ -1263,6 +1531,7 @@ export default function AbleCheckApp() {
                           <p className="font-medium flex items-center gap-2 truncate">
                             {getDisplayName(review)}
                             {review.is_anonymous && <EyeOff className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                            {!review.is_anonymous && review.profiles && <VerifiedBadge profile={review.profiles} />}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {new Date(review.created_at).toLocaleDateString("de-DE")}
@@ -1344,6 +1613,12 @@ export default function AbleCheckApp() {
                         </div>
                       </div>
                     )}
+
+                    {/* Helpful Voting and Report Button */}
+                    <div className="border-t pt-3 flex items-center justify-between">
+                      <HelpfulVoting review={review} />
+                      <ReportButton reviewId={review.id} reportedUserId={review.user_id} />
+                    </div>
                   </CardContent>
                 </Card>
               ))
@@ -1353,6 +1628,9 @@ export default function AbleCheckApp() {
 
         {/* Image Gallery Modal */}
         {showImageGallery && <MobileImageGallery images={galleryImages} onClose={() => setShowImageGallery(false)} />}
+        
+        {/* Report Modal */}
+        <ReportModal />
       </div>
     )
   }
