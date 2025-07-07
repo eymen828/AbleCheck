@@ -42,7 +42,7 @@ import { ThemeToggle, MobileThemeToggle } from "@/components/theme-toggle"
 import { SearchFilters, type SearchFilters as SearchFiltersType } from "@/components/search-filters"
 import { CategorySelector } from "@/components/category-selector"
 import { filterPlacesByCategory, getCategoryById } from "@/lib/categories"
-// import { Onboarding } from "@/components/onboarding" // Temporarily disabled due to React import issues
+import { Onboarding } from "@/components/onboarding"
 import { AccessibilitySettings } from "@/components/accessibility-settings"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
@@ -385,11 +385,11 @@ export default function AbleCheckApp() {
       if (session?.user) {
         await loadUserProfile(session.user.id)
         
-        // Check if user has completed onboarding - Temporarily disabled
-        // const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
-        // if (!hasCompletedOnboarding) {
-        //   setShowOnboarding(true)
-        // }
+        // Check if user has completed onboarding
+        const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
+        if (!hasCompletedOnboarding) {
+          setShowOnboarding(true)
+        }
       }
 
       setLoading(false)
@@ -404,11 +404,11 @@ export default function AbleCheckApp() {
       if (session?.user) {
         await loadUserProfile(session.user.id)
         
-        // Check if user has completed onboarding - Temporarily disabled
-        // const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
-        // if (!hasCompletedOnboarding) {
-        //   setShowOnboarding(true)
-        // }
+        // Check if user has completed onboarding
+        const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
+        if (!hasCompletedOnboarding) {
+          setShowOnboarding(true)
+        }
       } else {
         setUserProfile(null)
       }
@@ -877,11 +877,11 @@ export default function AbleCheckApp() {
     return user?.email?.charAt(0).toUpperCase() || "B"
   }
 
-  // Onboarding handlers - Temporarily disabled
+  // Onboarding handlers
   const handleOnboardingComplete = () => {
-    // if (user) {
-    //   localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
-    // }
+    if (user) {
+      localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
+    }
     setShowOnboarding(false)
     if (announceAction) {
       announceAction("Onboarding abgeschlossen - Willkommen bei AbleCheck!")
@@ -889,9 +889,9 @@ export default function AbleCheckApp() {
   }
 
   const handleOnboardingSkip = () => {
-    // if (user) {
-    //   localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
-    // }
+    if (user) {
+      localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
+    }
     setShowOnboarding(false)
     if (announceAction) {
       announceAction("Onboarding übersprungen")
@@ -1676,10 +1676,9 @@ export default function AbleCheckApp() {
               size="sm" 
               onClick={(e) => handleAccessibleClick(
                 e.currentTarget, 
-                () => {}, // Temporarily disabled
-                "Hilfe-Funktion temporär deaktiviert"
+                () => setShowOnboarding(true), 
+                "Onboarding erneut anzeigen"
               )}
-              disabled
             >
               <CheckCircle className="w-4 h-4 mr-2" />
               Hilfe
@@ -1696,7 +1695,7 @@ export default function AbleCheckApp() {
               userProfile={userProfile}
               onProfileClick={() => setView("profile")}
               onSignOut={handleSignOut}
-              onShowOnboarding={() => {}} // Temporarily disabled
+              onShowOnboarding={() => setShowOnboarding(true)}
               getUserDisplayName={getUserDisplayName}
               getUserInitial={getUserInitial}
             />
@@ -1890,12 +1889,12 @@ export default function AbleCheckApp() {
         )}
       </div>
 
-      {/* Onboarding - Temporarily disabled */}
-      {/* <Onboarding
+      {/* Onboarding */}
+      <Onboarding
         isOpen={showOnboarding}
         onComplete={handleOnboardingComplete}
         onSkip={handleOnboardingSkip}
-      /> */}
+      />
     </div>
   )
 }
