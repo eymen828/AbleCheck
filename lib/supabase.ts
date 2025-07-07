@@ -14,6 +14,7 @@ export type Database = {
           id: string
           name: string
           address: string | null
+          categories: string[] | null
           created_at: string
           updated_at: string
         }
@@ -21,6 +22,7 @@ export type Database = {
           id?: string
           name: string
           address?: string | null
+          categories?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -28,6 +30,7 @@ export type Database = {
           id?: string
           name?: string
           address?: string | null
+          categories?: string[] | null
           updated_at?: string
         }
       }
@@ -108,6 +111,7 @@ export type Database = {
           id: string
           name: string
           address: string | null
+          categories: string[] | null
           created_at: string
           review_count: number
           avg_wheelchair_access: number | null

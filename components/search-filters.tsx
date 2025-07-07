@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -14,10 +14,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Filter, X, Star, Users } from "lucide-react"
+import { CategorySelector } from "@/components/category-selector"
 
 export interface SearchFilters {
   minRating: number
   minReviews: number
+  categories: string[]
   sortBy: "rating" | "reviews" | "name" | "date"
   sortOrder: "asc" | "desc"
 }
@@ -52,13 +54,14 @@ export function SearchFilters({
     onFiltersChange({
       minRating: 0,
       minReviews: 0,
+      categories: [],
       sortBy: "rating",
       sortOrder: "desc",
     })
   }
 
   const hasActiveFilters =
-    filters.minRating > 0 || filters.minReviews > 0
+    filters.minRating > 0 || filters.minReviews > 0 || filters.categories.length > 0
 
   return (
     <div className="flex items-center gap-2">
@@ -138,6 +141,15 @@ export function SearchFilters({
               </div>
             </div>
 
+            {/* Categories Filter */}
+            <div className="space-y-3">
+              <Label>Kategorien</Label>
+              <CategorySelector
+                selectedCategories={filters.categories}
+                onCategoryChange={(categories) => updateFilters({ categories })}
+              />
+            </div>
+
             {/* Sort Options */}
             <div className="space-y-3">
               <Label>Sortierung</Label>
@@ -188,6 +200,11 @@ export function SearchFilters({
           {filters.minReviews > 0 && (
             <Badge variant="secondary" className="text-xs">
               {filters.minReviews}+ Bewertungen
+            </Badge>
+          )}
+          {filters.categories.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {filters.categories.length} Kategorie{filters.categories.length === 1 ? '' : 'n'}
             </Badge>
           )}
         </div>

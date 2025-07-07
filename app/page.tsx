@@ -40,6 +40,8 @@ import { Auth } from "@/components/auth"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { ThemeToggle, MobileThemeToggle } from "@/components/theme-toggle"
 import { SearchFilters, type SearchFilters as SearchFiltersType } from "@/components/search-filters"
+import { CategorySelector } from "@/components/category-selector"
+import { filterPlacesByCategory, getCategoryById } from "@/lib/categories"
 import { AccessibilitySettings } from "@/components/accessibility-settings"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
@@ -252,6 +254,7 @@ export default function AbleCheckApp() {
   const [formData, setFormData] = useState({
     placeName: "",
     address: "",
+    categories: [] as string[],
     ratings: {
       wheelchairAccess: 0,
       entranceAccess: 0,
@@ -303,8 +306,10 @@ export default function AbleCheckApp() {
       filtered = filtered.filter((place) => place.review_count >= searchFilters.minReviews)
     }
 
-    // Category filtering would need to be implemented with place categories
-    // For now, we'll skip this as it requires database schema changes
+    // Apply category filtering
+    if (searchFilters.categories.length > 0) {
+      filtered = filterPlacesByCategory(filtered, searchFilters.categories)
+    }
 
     // Sort results
     filtered.sort((a, b) => {
@@ -656,12 +661,24 @@ export default function AbleCheckApp() {
 
       if (existingPlace) {
         placeId = existingPlace.id
+        
+        // Update categories for existing place if provided
+        if (formData.categories.length > 0) {
+          await supabase
+            .from("places")
+            .update({
+              categories: formData.categories,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingPlace.id)
+        }
       } else {
         const { data: newPlace, error: placeError } = await supabase
           .from("places")
           .insert({
             name: formData.placeName,
             address: formData.address || null,
+            categories: formData.categories.length > 0 ? formData.categories : null,
           })
           .select("id")
           .single()
@@ -690,6 +707,7 @@ export default function AbleCheckApp() {
       setFormData({
         placeName: "",
         address: "",
+        categories: [],
         ratings: {
           wheelchairAccess: 0,
           entranceAccess: 0,
@@ -1335,6 +1353,23 @@ export default function AbleCheckApp() {
                   </div>
                 </div>
 
+                {/* Categories */}
+                <div className="space-y-4">
+                  <div>
+                    <Label>Kategorien auswählen</Label>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Wählen Sie passende Kategorien für diesen Ort aus
+                    </p>
+                    <CategorySelector
+                      selectedCategories={formData.categories}
+                      onCategoryChange={(categories) => {
+                        setFormData({ ...formData, categories })
+                        announceFormField("Kategorien", "Kategorienauswahl", `${categories.length} Kategorien ausgewählt`)
+                      }}
+                    />
+                  </div>
+                </div>
+
                 {/* Rating Criteria */}
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold">Bewertungskriterien</h3>
@@ -1673,6 +1708,30 @@ export default function AbleCheckApp() {
                         <span className="truncate">{place.name}</span>
                       </CardTitle>
                       {place.address && <CardDescription className="truncate">{place.address}</CardDescription>}
+                      {place.categories && place.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {place.categories.slice(0, 3).map((categoryId: string) => {
+                            const category = getCategoryById(categoryId)
+                            if (!category) return null
+                            return (
+                              <Badge
+                                key={categoryId}
+                                variant="outline"
+                                className="text-xs px-2 py-0.5 h-auto"
+                                style={{ borderColor: category.color }}
+                              >
+                                <span className="mr-1">{category.icon}</span>
+                                {category.name}
+                              </Badge>
+                            )
+                          })}
+                          {place.categories.length > 3 && (
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 h-auto">
+                              +{place.categories.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
                       <Badge className={getRatingColor(place.avg_overall_rating)}>

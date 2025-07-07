@@ -547,10 +547,12 @@ export const getCategoryColor = (categoryId: string): string => {
 
 export const filterPlacesByCategory = (places: any[], categoryIds: string[]): any[] => {
   if (categoryIds.length === 0) return places
-  return places.filter(place => 
-    categoryIds.some(categoryId => 
-      place.category_id === categoryId || 
-      place.categories?.includes(categoryId)
+  return places.filter(place => {
+    if (!place.categories || !Array.isArray(place.categories)) return false
+    
+    // Check if any of the selected category IDs match any of the place's categories
+    return categoryIds.some(selectedCategoryId => 
+      place.categories.includes(selectedCategoryId)
     )
-  )
+  })
 }
