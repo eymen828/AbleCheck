@@ -42,7 +42,7 @@ import { ThemeToggle, MobileThemeToggle } from "@/components/theme-toggle"
 import { SearchFilters, type SearchFilters as SearchFiltersType } from "@/components/search-filters"
 import { CategorySelector } from "@/components/category-selector"
 import { filterPlacesByCategory, getCategoryById } from "@/lib/categories"
-import { Onboarding } from "@/components/onboarding"
+// import { Onboarding } from "@/components/onboarding" // Temporarily disabled due to React import issues
 import { AccessibilitySettings } from "@/components/accessibility-settings"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
@@ -360,7 +360,15 @@ export default function AbleCheckApp() {
     })
 
     return filtered
-  }, [places, searchQuery, searchFilters])
+  }, [
+    places, 
+    searchQuery, 
+    searchFilters.minRating,
+    searchFilters.minReviews,
+    searchFilters.categories,
+    searchFilters.sortBy,
+    searchFilters.sortOrder
+  ]) // Destructured searchFilters to prevent unnecessary re-calculations
 
   useEffect(() => {
     setFilteredPlaces(processedPlaces)
@@ -377,11 +385,11 @@ export default function AbleCheckApp() {
       if (session?.user) {
         await loadUserProfile(session.user.id)
         
-        // Check if user has completed onboarding
-        const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
-        if (!hasCompletedOnboarding) {
-          setShowOnboarding(true)
-        }
+        // Check if user has completed onboarding - Temporarily disabled
+        // const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
+        // if (!hasCompletedOnboarding) {
+        //   setShowOnboarding(true)
+        // }
       }
 
       setLoading(false)
@@ -396,11 +404,11 @@ export default function AbleCheckApp() {
       if (session?.user) {
         await loadUserProfile(session.user.id)
         
-        // Check if user has completed onboarding
-        const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
-        if (!hasCompletedOnboarding) {
-          setShowOnboarding(true)
-        }
+        // Check if user has completed onboarding - Temporarily disabled
+        // const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${session.user.id}`)
+        // if (!hasCompletedOnboarding) {
+        //   setShowOnboarding(true)
+        // }
       } else {
         setUserProfile(null)
       }
@@ -433,8 +441,10 @@ export default function AbleCheckApp() {
       "place-detail": "Ortsdetails",
       profile: "Profil bearbeiten",
     }
-    announcePageChange(pageNames[view])
-  }, [view, announcePageChange])
+    if (announcePageChange && pageNames[view]) {
+      announcePageChange(pageNames[view])
+    }
+  }, [view]) // Removed announcePageChange from dependencies to prevent infinite loop
 
   // Load user profile
   const loadUserProfile = async (userId: string) => {
@@ -459,13 +469,20 @@ export default function AbleCheckApp() {
     }
   }
 
-  // Load places from Supabase
+  // Load places from Supabase with timeout and better error handling
   const loadPlaces = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const { data, error } = await supabase.from("place_ratings").select("*").order("created_at", { ascending: false })
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      )
+
+      const dataPromise = supabase.from("place_ratings").select("*").order("created_at", { ascending: false })
+
+      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any
 
       if (error) {
         console.error("Error loading places:", error)
@@ -474,9 +491,13 @@ export default function AbleCheckApp() {
       }
 
       setPlaces(data || [])
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading places:", error)
-      setError("Unerwarteter Fehler beim Laden der Orte")
+      if (error.message === 'Request timeout') {
+        setError("Die Verbindung ist zu langsam. Bitte versuchen Sie es erneut.")
+      } else {
+        setError("Unerwarteter Fehler beim Laden der Orte")
+      }
     } finally {
       setLoading(false)
     }
@@ -527,7 +548,7 @@ export default function AbleCheckApp() {
     if (user) {
       loadPlaces()
     }
-  }, [user])
+  }, [user?.id]) // Use user.id instead of user object to prevent unnecessary re-renders
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -856,21 +877,25 @@ export default function AbleCheckApp() {
     return user?.email?.charAt(0).toUpperCase() || "B"
   }
 
-  // Onboarding handlers
+  // Onboarding handlers - Temporarily disabled
   const handleOnboardingComplete = () => {
-    if (user) {
-      localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
-    }
+    // if (user) {
+    //   localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
+    // }
     setShowOnboarding(false)
-    announceAction("Onboarding abgeschlossen - Willkommen bei AbleCheck!")
+    if (announceAction) {
+      announceAction("Onboarding abgeschlossen - Willkommen bei AbleCheck!")
+    }
   }
 
   const handleOnboardingSkip = () => {
-    if (user) {
-      localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
-    }
+    // if (user) {
+    //   localStorage.setItem(`onboarding_completed_${user.id}`, 'true')
+    // }
     setShowOnboarding(false)
-    announceAction("Onboarding übersprungen")
+    if (announceAction) {
+      announceAction("Onboarding übersprungen")
+    }
   }
 
   if (!isHydrated) {
@@ -1651,9 +1676,10 @@ export default function AbleCheckApp() {
               size="sm" 
               onClick={(e) => handleAccessibleClick(
                 e.currentTarget, 
-                () => setShowOnboarding(true), 
-                "Onboarding erneut anzeigen"
+                () => {}, // Temporarily disabled
+                "Hilfe-Funktion temporär deaktiviert"
               )}
+              disabled
             >
               <CheckCircle className="w-4 h-4 mr-2" />
               Hilfe
@@ -1665,15 +1691,15 @@ export default function AbleCheckApp() {
           </div>
 
           {/* Mobile Navigation */}
-          <MobileMenu
-            user={user}
-            userProfile={userProfile}
-            onProfileClick={() => setView("profile")}
-            onSignOut={handleSignOut}
-            onShowOnboarding={() => setShowOnboarding(true)}
-            getUserDisplayName={getUserDisplayName}
-            getUserInitial={getUserInitial}
-          />
+                      <MobileMenu
+              user={user}
+              userProfile={userProfile}
+              onProfileClick={() => setView("profile")}
+              onSignOut={handleSignOut}
+              onShowOnboarding={() => {}} // Temporarily disabled
+              getUserDisplayName={getUserDisplayName}
+              getUserInitial={getUserInitial}
+            />
         </div>
       </div>
 
@@ -1864,12 +1890,12 @@ export default function AbleCheckApp() {
         )}
       </div>
 
-      {/* Onboarding */}
-      <Onboarding
+      {/* Onboarding - Temporarily disabled */}
+      {/* <Onboarding
         isOpen={showOnboarding}
         onComplete={handleOnboardingComplete}
         onSkip={handleOnboardingSkip}
-      />
+      /> */}
     </div>
   )
 }
