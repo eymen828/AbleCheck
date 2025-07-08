@@ -1593,7 +1593,25 @@ export default function AbleCheckApp() {
           <Button variant="ghost" size="icon" title="Check-In-Hilfe" onClick={() => setShowCheckInIntro(true)}>
             <HelpCircle className="w-5 h-5" />
           </Button>
-          {/* ... weitere Buttons wie Theme/Profile ... */}
+          <div className="hidden md:flex items-center gap-2">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={userProfile?.avatar_url || ""} />
+              <AvatarFallback>{getUserInitial()}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-muted-foreground">{getUserDisplayName()}</span>
+            <AccessibilitySettings />
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={() => setView("profile")}> <Settings className="w-4 h-4 mr-2" /> Profil </Button>
+            <Button variant="outline" size="sm" onClick={handleSignOut}> <LogOut className="w-4 h-4 mr-2" /> Abmelden </Button>
+          </div>
+          <MobileMenu
+            user={user}
+            userProfile={userProfile}
+            onProfileClick={() => setView("profile")}
+            onSignOut={handleSignOut}
+            getUserDisplayName={getUserDisplayName}
+            getUserInitial={getUserInitial}
+          />
         </div>
       </div>
 
