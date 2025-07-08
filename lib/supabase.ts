@@ -44,6 +44,8 @@ export type Database = {
           comments: string | null
           images: string[] | null
           is_anonymous: boolean
+          check_in_verified: boolean
+          check_in_data: any | null
           created_at: string
           updated_at: string
         }
@@ -59,6 +61,8 @@ export type Database = {
           comments?: string | null
           images?: string[] | null
           is_anonymous?: boolean
+          check_in_verified?: boolean
+          check_in_data?: any | null
           created_at?: string
           updated_at?: string
         }
@@ -74,6 +78,8 @@ export type Database = {
           comments?: string | null
           images?: string[] | null
           is_anonymous?: boolean
+          check_in_verified?: boolean
+          check_in_data?: any | null
           updated_at?: string
         }
       }
@@ -110,12 +116,14 @@ export type Database = {
           address: string | null
           created_at: string
           review_count: number
+          checkin_review_count: number
           avg_wheelchair_access: number | null
           avg_entrance_access: number | null
           avg_bathroom_access: number | null
           avg_table_height: number | null
           avg_staff_helpfulness: number | null
           avg_overall_rating: number | null
+          weighted_avg_rating: number | null
         }
       }
     }
