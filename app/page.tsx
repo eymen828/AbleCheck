@@ -289,6 +289,8 @@ export default function AbleCheckApp() {
   const [checkInIntroSeen, setCheckInIntroSeen] = useLocalStorage<boolean>("checkin_intro_seen", false)
   const [showInfoDialog, setShowInfoDialog] = useState(false)
   const [onboardingStep, setOnboardingStep] = useState(0)
+  const [showCheckInPlaceSelect, setShowCheckInPlaceSelect] = useState(false)
+  const [checkInSelectedPlace, setCheckInSelectedPlace] = useState<PlaceRating | null>(null)
   const onboardingSlides = [
     {
       title: "Willkommen bei AbleCheck!",
@@ -1796,18 +1798,60 @@ export default function AbleCheckApp() {
                 <Button
                   onClick={() => {
                     setCheckInActive(false)
-                    setShowCheckInForm(true)
-                    setView("checkin-form")
+                    setShowCheckInPlaceSelect(true)
                   }}
                   className="w-full"
                   disabled={!checkInAllowed}
                 >
-                  {checkInAllowed ? "Check-In-Bewertung abgeben" : "Mindestens 2 Minuten warten..."}
+                  {checkInAllowed ? "Weiter" : "Mindestens 2 Minuten warten..."}
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Dialog: Nach Check-In-Countdown Ort auswählen */}
+        <Dialog open={showCheckInPlaceSelect} onOpenChange={setShowCheckInPlaceSelect}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Wo bist du?</DialogTitle>
+              <DialogDescription>
+                Bitte wähle den Ort aus, an dem du dich gerade befindest. Nur dann kannst du eine Check-In-Bewertung abgeben.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-64 overflow-y-auto flex flex-col gap-2 mt-2">
+              {places.length === 0 ? (
+                <div className="text-muted-foreground">Keine Orte gefunden.</div>
+              ) : (
+                places.map((place) => (
+                  <Button
+                    key={place.id}
+                    variant={checkInSelectedPlace?.id === place.id ? "default" : "outline"}
+                    className="w-full justify-start"
+                    onClick={() => setCheckInSelectedPlace(place)}
+                  >
+                    {place.name} {place.address && <span className="text-xs text-muted-foreground ml-2">{place.address}</span>}
+                  </Button>
+                ))
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  if (checkInSelectedPlace) {
+                    setShowCheckInPlaceSelect(false)
+                    setFormData({ ...formData, placeName: checkInSelectedPlace.name, address: checkInSelectedPlace.address || "" })
+                    setView("checkin-form")
+                  }
+                }}
+                disabled={!checkInSelectedPlace}
+                className="w-full"
+              >
+                Weiter zur Bewertung
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Places List */}
         {filteredPlaces.length === 0 ? (
