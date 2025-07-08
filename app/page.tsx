@@ -288,6 +288,25 @@ export default function AbleCheckApp() {
   const [checkInAllowed, setCheckInAllowed] = useState(false)
   const [checkInIntroSeen, setCheckInIntroSeen] = useLocalStorage<boolean>("checkin_intro_seen", false)
   const [showInfoDialog, setShowInfoDialog] = useState(false)
+  const [onboardingStep, setOnboardingStep] = useState(0)
+  const onboardingSlides = [
+    {
+      title: "Willkommen bei AbleCheck!",
+      desc: "Mit AbleCheck kannst du Orte auf ihre Barrierefreiheit bewerten und anderen helfen, passende Orte zu finden."
+    },
+    {
+      title: "So funktioniert's",
+      desc: "Klicke auf das Plus, um eine neue Bewertung abzugeben. Nutze die Filter und Suche, um Orte zu finden."
+    },
+    {
+      title: "Check-In-Bewertungen",
+      desc: "Check-In-Bewertungen sind besonders vertrauenswürdig, da sie vor Ort bestätigt werden. Nach 2 Minuten und GPS-Bestätigung kannst du eine Check-In-Bewertung abgeben."
+    },
+    {
+      title: "Viel Spaß!",
+      desc: "Viel Spaß beim Bewerten und Entdecken!"
+    }
+  ]
 
   const { handleAccessibleClick, announcePageChange, announceFormField } = useAccessibilityMode()
 
@@ -1178,9 +1197,11 @@ export default function AbleCheckApp() {
           {/* Add Review Button */}
           {!userReview && (
             <Button
-              onClick={(e) => {
+              onClick={() => {
                 setShowReviewTypeDialog(true)
-                setSelectedPlace(selectedPlace)
+                if (selectedPlace) {
+                  setFormData({ ...formData, placeName: selectedPlace.name, address: selectedPlace.address || "" })
+                }
               }}
               className="w-full gap-2"
               size="lg"
@@ -1878,6 +1899,28 @@ export default function AbleCheckApp() {
           </div>
         )}
       </div>
+
+      {/* Mehrseitiges Onboarding-Dialog */}
+      <Dialog open={showInfoDialog} onOpenChange={(open) => { setShowInfoDialog(open); setOnboardingStep(0); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{onboardingSlides[onboardingStep].title}</DialogTitle>
+            <DialogDescription>{onboardingSlides[onboardingStep].desc}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <div className="flex w-full gap-2">
+              {onboardingStep > 0 && (
+                <Button variant="outline" onClick={() => setOnboardingStep(onboardingStep - 1)} className="w-full">Zurück</Button>
+              )}
+              {onboardingStep < onboardingSlides.length - 1 ? (
+                <Button onClick={() => setOnboardingStep(onboardingStep + 1)} className="w-full">Weiter</Button>
+              ) : (
+                <Button onClick={() => setShowInfoDialog(false)} className="w-full">Fertig</Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
