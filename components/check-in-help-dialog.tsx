@@ -61,26 +61,33 @@ export function CheckInHelpDialog({ open, onOpenChange }: CheckInHelpDialogProps
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold">1</div>
                 <div>
-                  <p className="font-medium">Standort-Berechtigung erteilen</p>
-                  <p className="text-sm text-muted-foreground">Erlauben Sie der App, Ihren Standort zu verwenden</p>
+                  <p className="font-medium">Adresse eingeben</p>
+                  <p className="text-sm text-muted-foreground">Geben Sie die genaue Adresse des Ortes ein</p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold">2</div>
                 <div>
-                  <p className="font-medium">Timer starten</p>
-                  <p className="text-sm text-muted-foreground">Starten Sie den 2-Minuten Timer am gewünschten Ort</p>
+                  <p className="font-medium">Zum Ort begeben</p>
+                  <p className="text-sm text-muted-foreground">Gehen Sie physisch zu der angegebenen Adresse</p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold">3</div>
+                <div>
+                  <p className="font-medium">Timer starten</p>
+                  <p className="text-sm text-muted-foreground">Starten Sie den 2-Minuten Timer vor Ort</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold">4</div>
                 <div>
                   <p className="font-medium">Am Ort bleiben</p>
                   <p className="text-sm text-muted-foreground">Bleiben Sie mindestens 2 Minuten in der Nähe (max. 100m Entfernung)</p>
                 </div>
               </div>
               <div className="flex gap-3">
-                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold">4</div>
+                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold">5</div>
                 <div>
                   <p className="font-medium">Bewertung abgeben</p>
                   <p className="text-sm text-muted-foreground">Nach erfolgreicher Verifikation können Sie Ihre Check-In Bewertung abgeben</p>
@@ -144,6 +151,8 @@ export function CheckInHelpDialog({ open, onOpenChange }: CheckInHelpDialogProps
               Wichtige Hinweise
             </h3>
             <ul className="space-y-1 text-sm text-yellow-700 dark:text-yellow-300">
+              <li>• Geben Sie die korrekte Adresse des Ortes ein</li>
+              <li>• Sie müssen sich physisch zum Ort begeben</li>
               <li>• GPS-Signal kann in Gebäuden schwächer sein</li>
               <li>• Stellen Sie sicher, dass Standort-Services aktiviert sind</li>
               <li>• Bei Problemen können Sie zur Standard-Bewertung wechseln</li>

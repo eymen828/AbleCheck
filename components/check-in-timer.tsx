@@ -21,6 +21,7 @@ import { useGeolocation, calculateDistance } from "@/hooks/use-geolocation"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
 
 interface CheckInTimerProps {
+  address: string
   targetLocation?: {
     latitude: number
     longitude: number
@@ -43,7 +44,7 @@ const REQUIRED_DURATION = 2 * 60 * 1000 // 2 Minuten in Millisekunden
 const MAX_DISTANCE = 100 // Maximale Entfernung in Metern
 const POSITION_CHECK_INTERVAL = 10000 // Alle 10 Sekunden Position prüfen
 
-export function CheckInTimer({ targetLocation, onCheckInComplete, onCancel, onShowHelp }: CheckInTimerProps) {
+export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCancel, onShowHelp }: CheckInTimerProps) {
   const [isRunning, setIsRunning] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [elapsedTime, setElapsedTime] = useState(0)
@@ -206,11 +207,22 @@ export function CheckInTimer({ targetLocation, onCheckInComplete, onCancel, onSh
           </Button>
         </div>
         <CardDescription>
-          Bleiben Sie mindestens 2 Minuten am Standort für eine verifizierte Bewertung
+          Bleiben Sie mindestens 2 Minuten am angegebenen Ort für eine verifizierte Bewertung
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Adresse Anzeige */}
+        <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+          <div className="flex items-start gap-2">
+            <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Check-In Adresse:</p>
+              <p className="text-sm text-blue-700 dark:text-blue-300">{address}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Timer Display */}
         <div className="text-center">
           <div className="text-4xl font-mono font-bold mb-2">

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SearchFilters, type SearchFilters as SearchFiltersType } from "@/components/search-filters"
 import { ReviewTypeSelector } from "@/components/review-type-selector"
+import { CheckInAddressInput } from "@/components/check-in-address-input"
 import { CheckInTimer, type CheckInData } from "@/components/check-in-timer"
 import { CheckInHelpDialog } from "@/components/check-in-help-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -36,9 +37,12 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [showAuth, setShowAuth] = useState(false)
   const [showReviewTypeSelector, setShowReviewTypeSelector] = useState(false)
+  const [showCheckInAddressInput, setShowCheckInAddressInput] = useState(false)
   const [showCheckInTimer, setShowCheckInTimer] = useState(false)
   const [showCheckInHelp, setShowCheckInHelp] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState<PlaceRating | null>(null)
+  const [checkInAddress, setCheckInAddress] = useState("")
+  const [checkInCoordinates, setCheckInCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const [hasSeenCheckInIntro, setHasSeenCheckInIntro] = useLocalStorage('ablecheck-checkin-intro-seen', false)
   
   const { position, getCurrentPosition } = useGeolocation()
@@ -100,13 +104,14 @@ export default function HomePage() {
       setShowCheckInHelp(true)
       setHasSeenCheckInIntro(true)
     } else {
-      startCheckInProcess()
+      setShowCheckInAddressInput(true)
     }
   }
 
-  const startCheckInProcess = () => {
-    // Standort abrufen
-    getCurrentPosition()
+  const handleAddressConfirmed = (address: string, coordinates?: { latitude: number; longitude: number }) => {
+    setCheckInAddress(address)
+    setCheckInCoordinates(coordinates || null)
+    setShowCheckInAddressInput(false)
     setShowCheckInTimer(true)
   }
 
@@ -123,7 +128,7 @@ export default function HomePage() {
 
   const handleCheckInHelpClose = () => {
     setShowCheckInHelp(false)
-    startCheckInProcess()
+    setShowCheckInAddressInput(true)
   }
 
   const filteredPlaces = places.filter(place => {
@@ -179,16 +184,30 @@ export default function HomePage() {
     )
   }
 
+  if (showCheckInAddressInput) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <CheckInAddressInput
+          onAddressConfirmed={handleAddressConfirmed}
+          onCancel={() => setShowCheckInAddressInput(false)}
+          onShowHelp={() => setShowCheckInHelp(true)}
+        />
+      </div>
+    )
+  }
+
   if (showCheckInTimer) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <CheckInTimer
-          targetLocation={position ? {
-            latitude: position.latitude,
-            longitude: position.longitude
-          } : undefined}
+          address={checkInAddress}
+          targetLocation={checkInCoordinates || undefined}
           onCheckInComplete={handleCheckInComplete}
-          onCancel={() => setShowCheckInTimer(false)}
+          onCancel={() => {
+            setShowCheckInTimer(false)
+            setCheckInAddress("")
+            setCheckInCoordinates(null)
+          }}
           onShowHelp={() => setShowCheckInHelp(true)}
         />
       </div>
