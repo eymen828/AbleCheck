@@ -33,6 +33,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  HelpCircle,
 } from "lucide-react"
 import { upload } from "@vercel/blob/client"
 import { supabase, type PlaceRating, type Review, type Profile } from "@/lib/supabase"
@@ -1719,6 +1720,85 @@ export default function AbleCheckApp() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Check-In Einführung Dialog */}
+        <Dialog open={showCheckInIntro} onOpenChange={setShowCheckInIntro}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Was ist eine Check-In-Bewertung?</DialogTitle>
+              <DialogDescription>
+                Bei einer Check-In-Bewertung bestätigst du durch deinen Aufenthalt (mind. 2 Minuten, geprüft per GPS), dass du wirklich vor Ort bist. <br /><br />
+                <b>Wichtig:</b> Dafür werden deine GPS-Daten genutzt. Diese werden <b>nicht verkauft oder anderweitig genutzt</b>, sondern nur zur Überprüfung deines Aufenthalts verwendet.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 text-sm text-muted-foreground">
+              Nach Ablauf der Zeit kannst du eine Check-In-Bewertung abgeben. Diese wird besonders hervorgehoben.
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  setCheckInIntroSeen(true)
+                  setShowCheckInIntro(false)
+                  setCheckInActive(true)
+                }}
+                className="w-full"
+              >
+                Verstanden & Starten
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Check-In Hilfe Dialog */}
+        <Dialog open={showCheckInHelp} onOpenChange={setShowCheckInHelp}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Check-In-Bewertung Hilfe</DialogTitle>
+              <DialogDescription>
+                Bei einer Check-In-Bewertung bestätigst du durch deinen Aufenthalt (mind. 2 Minuten, geprüft per GPS), dass du wirklich vor Ort bist. <br /><br />
+                <b>Wichtig:</b> Dafür werden deine GPS-Daten genutzt. Diese werden <b>nicht verkauft oder anderweitig genutzt</b>, sondern nur zur Überprüfung deines Aufenthalts verwendet.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setShowCheckInHelp(false)} className="w-full">Schließen</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Check-In Stoppuhr & GPS */}
+        {checkInActive && (
+          <Dialog open={checkInActive} onOpenChange={(open) => { if (!open) setCheckInActive(false) }}>
+            <DialogContent>
+              <div className="flex justify-between items-center mb-2">
+                <DialogTitle>Check-In läuft...</DialogTitle>
+                <Button onClick={() => setShowCheckInHelp(true)} variant="ghost" size="icon" className="ml-2" title="Hilfe">
+                  <HelpCircle className="w-5 h-5" />
+                </Button>
+              </div>
+              <DialogDescription>
+                Bitte bleibe für mindestens 2 Minuten am Ort. Deine Anwesenheit wird per GPS geprüft.
+              </DialogDescription>
+              <div className="flex flex-col items-center gap-4 mt-4">
+                <div className="text-4xl font-mono">{Math.floor(checkInTimer/60).toString().padStart(2,"0")}:{(checkInTimer%60).toString().padStart(2,"0")}</div>
+                <div className="text-sm text-muted-foreground">
+                  {checkInLocation ? "GPS-Signal erkannt" : "Warte auf GPS..."}
+                </div>
+                {checkInError && <Alert variant="destructive"><AlertDescription>{checkInError}</AlertDescription></Alert>}
+                <Button
+                  onClick={() => {
+                    setCheckInActive(false)
+                    setShowCheckInForm(true)
+                    setView("checkin-form")
+                  }}
+                  className="w-full"
+                  disabled={!checkInAllowed}
+                >
+                  {checkInAllowed ? "Check-In-Bewertung abgeben" : "Mindestens 2 Minuten warten..."}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Places List */}
         {filteredPlaces.length === 0 ? (
