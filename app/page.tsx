@@ -45,6 +45,7 @@ import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
 import { moderateContent, shouldBlockContent, getContentWarning } from "@/lib/content-filter"
 import { AccessibleButton } from "@/components/accessible-button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 
 interface StarRatingProps {
   rating: number
@@ -273,6 +274,8 @@ export default function AbleCheckApp() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [contentWarning, setContentWarning] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [showReviewTypeDialog, setShowReviewTypeDialog] = useState(false)
+  const [reviewType, setReviewType] = useState<null | "standard" | "checkin">(null)
 
   const { handleAccessibleClick, announcePageChange, announceFormField } = useAccessibilityMode()
 
@@ -1619,14 +1622,53 @@ export default function AbleCheckApp() {
 
         {/* Add Review Button */}
         <AccessibleButton
-          onAccessibleClick={() => setView("form")}
-          description="Neuen Ort bewerten - öffnet das Bewertungsformular"
+          onAccessibleClick={() => setShowReviewTypeDialog(true)}
+          description="Neuen Ort bewerten - öffnet die Bewertungsart-Auswahl"
           className="w-full gap-2"
           size="lg"
         >
           <Plus className="w-5 h-5" />
           Ort bewerten
         </AccessibleButton>
+
+        {/* Dialog für Bewertungsart-Auswahl */}
+        <Dialog open={showReviewTypeDialog} onOpenChange={setShowReviewTypeDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Bewertungsart wählen</DialogTitle>
+              <DialogDescription>
+                Möchtest du eine Standard-Bewertung oder eine Check-In-Bewertung abgeben?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 mt-4">
+              <Button
+                variant="default"
+                onClick={() => {
+                  setShowReviewTypeDialog(false)
+                  setReviewType("standard")
+                  setView("form")
+                }}
+                className="w-full"
+              >
+                Standard-Bewertung
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowReviewTypeDialog(false)
+                  setReviewType("checkin")
+                  // Hier später Check-In-Logik anzeigen
+                }}
+                className="w-full"
+              >
+                Check-In-Bewertung
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowReviewTypeDialog(false)} className="w-full">Abbrechen</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Places List */}
         {filteredPlaces.length === 0 ? (
