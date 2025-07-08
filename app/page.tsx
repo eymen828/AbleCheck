@@ -287,6 +287,7 @@ export default function AbleCheckApp() {
   const [showCheckInForm, setShowCheckInForm] = useState(false)
   const [checkInAllowed, setCheckInAllowed] = useState(false)
   const [checkInIntroSeen, setCheckInIntroSeen] = useLocalStorage<boolean>("checkin_intro_seen", false)
+  const [showInfoDialog, setShowInfoDialog] = useState(false)
 
   const { handleAccessibleClick, announcePageChange, announceFormField } = useAccessibilityMode()
 
@@ -1590,7 +1591,7 @@ export default function AbleCheckApp() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" title="Check-In-Hilfe" onClick={() => setShowCheckInIntro(true)}>
+          <Button variant="ghost" size="icon" title="Hilfe" onClick={() => setShowInfoDialog(true)}>
             <HelpCircle className="w-5 h-5" />
           </Button>
           <div className="hidden md:flex items-center gap-2">
