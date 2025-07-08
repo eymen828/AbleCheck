@@ -46,6 +46,7 @@ import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
 import { moderateContent, shouldBlockContent, getContentWarning } from "@/lib/content-filter"
 import { AccessibleButton } from "@/components/accessible-button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
 interface StarRatingProps {
   rating: number
@@ -233,7 +234,7 @@ export default function AbleCheckApp() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<"list" | "form" | "place-detail" | "profile">("list")
+  const [view, setView] = useState<"list" | "form" | "place-detail" | "profile" | "checkin-form" | "checkin-list">("list")
   const [places, setPlaces] = useState<PlaceRating[]>([])
   const [filteredPlaces, setFilteredPlaces] = useState<PlaceRating[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -276,6 +277,15 @@ export default function AbleCheckApp() {
   const [isHydrated, setIsHydrated] = useState(false)
   const [showReviewTypeDialog, setShowReviewTypeDialog] = useState(false)
   const [reviewType, setReviewType] = useState<null | "standard" | "checkin">(null)
+  const [showCheckInIntro, setShowCheckInIntro] = useState(false)
+  const [showCheckInHelp, setShowCheckInHelp] = useState(false)
+  const [checkInTimer, setCheckInTimer] = useState(0)
+  const [checkInActive, setCheckInActive] = useState(false)
+  const [checkInLocation, setCheckInLocation] = useState<GeolocationPosition | null>(null)
+  const [checkInError, setCheckInError] = useState<string | null>(null)
+  const [showCheckInForm, setShowCheckInForm] = useState(false)
+  const [checkInAllowed, setCheckInAllowed] = useState(false)
+  const [checkInIntroSeen, setCheckInIntroSeen] = useLocalStorage<boolean>("checkin_intro_seen", false)
 
   const { handleAccessibleClick, announcePageChange, announceFormField } = useAccessibilityMode()
 
@@ -634,7 +644,7 @@ export default function AbleCheckApp() {
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, isCheckIn = false) => {
     e.preventDefault()
     if (!formData.placeName.trim() || !user) return
 
@@ -684,6 +694,7 @@ export default function AbleCheckApp() {
         comments: moderation.filteredText || null,
         images: formData.images.length > 0 ? formData.images : null,
         is_anonymous: formData.isAnonymous,
+        is_checkin: isCheckIn,
       }
 
       const { error } = await supabase.from("reviews").upsert(reviewData)
@@ -812,6 +823,41 @@ export default function AbleCheckApp() {
     if (userProfile?.username) return userProfile.username.charAt(0).toUpperCase()
     return user?.email?.charAt(0).toUpperCase() || "B"
   }
+
+  // Check-In-Logik
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (checkInActive) {
+      setCheckInTimer(0)
+      setCheckInAllowed(false)
+      setCheckInError(null)
+      // Start timer
+      timer = setInterval(() => {
+        setCheckInTimer((prev) => prev + 1)
+      }, 1000)
+      // Start GPS
+      const geoId = navigator.geolocation.watchPosition(
+        (pos) => {
+          setCheckInLocation(pos)
+          setCheckInError(null)
+        },
+        (err) => {
+          setCheckInError("GPS konnte nicht abgerufen werden. Bitte Standortfreigabe erlauben.")
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+      )
+      return () => {
+        clearInterval(timer)
+        navigator.geolocation.clearWatch(geoId)
+      }
+    }
+  }, [checkInActive])
+
+  useEffect(() => {
+    if (checkInTimer >= 120 && checkInLocation) {
+      setCheckInAllowed(true)
+    }
+  }, [checkInTimer, checkInLocation])
 
   if (!isHydrated) {
     return (
@@ -1657,7 +1703,11 @@ export default function AbleCheckApp() {
                 onClick={() => {
                   setShowReviewTypeDialog(false)
                   setReviewType("checkin")
-                  // Hier später Check-In-Logik anzeigen
+                  if (!checkInIntroSeen) {
+                    setShowCheckInIntro(true)
+                  } else {
+                    setCheckInActive(true)
+                  }
                 }}
                 className="w-full"
               >
