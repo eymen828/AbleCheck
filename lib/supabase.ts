@@ -44,6 +44,7 @@ export type Database = {
           comments: string | null
           images: string[] | null
           is_anonymous: boolean
+          is_checkin: boolean
           created_at: string
           updated_at: string
         }
@@ -59,6 +60,7 @@ export type Database = {
           comments?: string | null
           images?: string[] | null
           is_anonymous?: boolean
+          is_checkin?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -74,6 +76,7 @@ export type Database = {
           comments?: string | null
           images?: string[] | null
           is_anonymous?: boolean
+          is_checkin?: boolean
           updated_at?: string
         }
       }

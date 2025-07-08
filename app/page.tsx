@@ -45,6 +45,9 @@ import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
 import { moderateContent, shouldBlockContent, getContentWarning } from "@/lib/content-filter"
 import { AccessibleButton } from "@/components/accessible-button"
+import { RatingTypeSelection } from "@/components/rating-type-selection"
+import { CheckInTimer } from "@/components/checkin-timer"
+import { CheckInReviewsPage } from "@/components/checkin-reviews-page"
 
 interface StarRatingProps {
   rating: number
@@ -232,7 +235,7 @@ export default function AbleCheckApp() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<"list" | "form" | "place-detail" | "profile">("list")
+  const [view, setView] = useState<"list" | "form" | "place-detail" | "profile" | "rating-type-selection" | "checkin-timer" | "checkin-reviews">("list")
   const [places, setPlaces] = useState<PlaceRating[]>([])
   const [filteredPlaces, setFilteredPlaces] = useState<PlaceRating[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -262,7 +265,9 @@ export default function AbleCheckApp() {
     comments: "",
     images: [] as string[],
     isAnonymous: false,
+    isCheckin: false,
   })
+  const [isFirstTimeCheckIn, setIsFirstTimeCheckIn] = useState(false)
   const [profileData, setProfileData] = useState({
     username: "",
     fullName: "",
@@ -423,6 +428,28 @@ export default function AbleCheckApp() {
       }
     } catch (error) {
       console.error("Error loading profile:", error)
+    }
+  }
+
+  // Check if user has made check-in reviews before
+  const checkFirstTimeCheckIn = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("is_checkin", true)
+        .limit(1)
+
+      if (error) {
+        console.error("Error checking check-in reviews:", error)
+        return false
+      }
+
+      return data.length === 0
+    } catch (error) {
+      console.error("Error checking check-in reviews:", error)
+      return false
     }
   }
 
@@ -681,6 +708,7 @@ export default function AbleCheckApp() {
         comments: moderation.filteredText || null,
         images: formData.images.length > 0 ? formData.images : null,
         is_anonymous: formData.isAnonymous,
+        is_checkin: formData.isCheckin,
       }
 
       const { error } = await supabase.from("reviews").upsert(reviewData)
@@ -700,6 +728,7 @@ export default function AbleCheckApp() {
         comments: "",
         images: [],
         isAnonymous: false,
+        isCheckin: false,
       })
       setContentWarning(null)
 
@@ -862,6 +891,50 @@ export default function AbleCheckApp() {
           </div>
         </div>
       </div>
+    )
+  }
+
+  // Rating Type Selection View
+  if (view === "rating-type-selection") {
+    return (
+      <RatingTypeSelection
+        onSelectStandard={() => {
+          setFormData(prev => ({ ...prev, isCheckin: false }))
+          setView("form")
+        }}
+        onSelectCheckIn={async () => {
+          if (!user) return
+          const isFirstTime = await checkFirstTimeCheckIn(user.id)
+          setIsFirstTimeCheckIn(isFirstTime)
+          setFormData(prev => ({ ...prev, isCheckin: true }))
+          setView("checkin-timer")
+        }}
+        onBack={() => setView("list")}
+      />
+    )
+  }
+
+  // Check-In Timer View
+  if (view === "checkin-timer") {
+    return (
+      <CheckInTimer
+        placeName={formData.placeName || "Neuer Ort"}
+        onTimerComplete={() => setView("form")}
+        onBack={() => setView("rating-type-selection")}
+        onShowHelp={() => setIsFirstTimeCheckIn(true)}
+        isFirstTime={isFirstTimeCheckIn}
+      />
+    )
+  }
+
+  // Check-In Reviews Page
+  if (view === "checkin-reviews") {
+    return (
+      <CheckInReviewsPage
+        onBack={() => setView("list")}
+        user={user}
+        onViewPlaceDetails={viewPlaceDetails}
+      />
     )
   }
 
@@ -1175,6 +1248,12 @@ export default function AbleCheckApp() {
                           <p className="font-medium flex items-center gap-2 truncate">
                             {getDisplayName(review)}
                             {review.is_anonymous && <EyeOff className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                            {review.is_checkin && (
+                              <Badge variant="outline" className="text-xs border-orange-300 text-orange-600 flex-shrink-0">
+                                <Timer className="w-3 h-3 mr-1" />
+                                Check In
+                              </Badge>
+                            )}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {new Date(review.created_at).toLocaleDateString("de-DE")}
@@ -1285,8 +1364,19 @@ export default function AbleCheckApp() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
-              <h1 className="text-lg font-bold">Ort bewerten</h1>
+              {formData.isCheckin ? (
+                <Timer className="w-5 h-5 text-orange-600" />
+              ) : (
+                <CheckCircle className="w-5 h-5 text-blue-600" />
+              )}
+              <h1 className="text-lg font-bold">
+                {formData.isCheckin ? "Check-In-Bewertung" : "Ort bewerten"}
+              </h1>
+              {formData.isCheckin && (
+                <Badge variant="outline" className="text-xs border-orange-300 text-orange-600">
+                  Verifiziert
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -1294,9 +1384,14 @@ export default function AbleCheckApp() {
         <div className="p-4">
           <Card>
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg">Barrierefreiheit bewerten</CardTitle>
+              <CardTitle className="text-lg">
+                {formData.isCheckin ? "Check-In-Bewertung abgeben" : "Barrierefreiheit bewerten"}
+              </CardTitle>
               <CardDescription className="text-sm">
-                Bewerten Sie die Zugänglichkeit dieses Ortes für Menschen mit Behinderungen
+                {formData.isCheckin 
+                  ? "Geben Sie Ihre verifizierte Bewertung ab - Sie waren mindestens 2 Minuten vor Ort"
+                  : "Bewerten Sie die Zugänglichkeit dieses Ortes für Menschen mit Behinderungen"
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1618,15 +1713,27 @@ export default function AbleCheckApp() {
         )}
 
         {/* Add Review Button */}
-        <AccessibleButton
-          onAccessibleClick={() => setView("form")}
-          description="Neuen Ort bewerten - öffnet das Bewertungsformular"
-          className="w-full gap-2"
-          size="lg"
-        >
-          <Plus className="w-5 h-5" />
-          Ort bewerten
-        </AccessibleButton>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <AccessibleButton
+            onAccessibleClick={() => setView("rating-type-selection")}
+            description="Neuen Ort bewerten - wählen Sie zwischen Standard- und Check-In-Bewertung"
+            className="w-full gap-2"
+            size="lg"
+          >
+            <Plus className="w-5 h-5" />
+            Ort bewerten
+          </AccessibleButton>
+          <AccessibleButton
+            onAccessibleClick={() => setView("checkin-reviews")}
+            description="Check-In-Bewertungen anzeigen - zeigt alle verifizierten Bewertungen"
+            className="w-full gap-2"
+            variant="outline"
+            size="lg"
+          >
+            <Timer className="w-5 h-5" />
+            Check-In-Bewertungen
+          </AccessibleButton>
+        </div>
 
         {/* Places List */}
         {filteredPlaces.length === 0 ? (
@@ -1643,7 +1750,7 @@ export default function AbleCheckApp() {
               </p>
               {!searchQuery && (
                 <Button
-                  onClick={(e) => handleAccessibleClick(e.currentTarget, () => setView("form"), "Ersten Ort bewerten")}
+                  onClick={(e) => handleAccessibleClick(e.currentTarget, () => setView("rating-type-selection"), "Ersten Ort bewerten")}
                   className="gap-2"
                 >
                   <Plus className="w-4 h-4" />
