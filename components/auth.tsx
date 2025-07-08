@@ -21,6 +21,10 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showReset, setShowReset] = useState(false)
+  const [resetEmail, setResetEmail] = useState("")
+  const [resetMessage, setResetMessage] = useState<string | null>(null)
+  const [resetError, setResetError] = useState<string | null>(null)
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,6 +55,25 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     } catch (error: any) {
       console.error("Auth error:", error)
       setError(error.message || "Ein unbekannter Fehler ist aufgetreten")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setResetError(null)
+    setResetMessage(null)
+    setLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail || email, {
+        redirectTo: window.location.origin + "/reset-password"
+      })
+      if (error) throw error
+      setResetMessage("Falls die E-Mail existiert, wurde eine E-Mail zum Zurücksetzen des Passworts gesendet.")
+      setShowReset(false)
+    } catch (error: any) {
+      setResetError(error.message || "Fehler beim Senden der Zurücksetzen-E-Mail.")
     } finally {
       setLoading(false)
     }
@@ -101,6 +124,21 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                   minLength={6}
                 />
               </div>
+              {!isSignUp && (
+                <Button
+                  variant="link"
+                  type="button"
+                  className="px-0 text-sm mt-1"
+                  onClick={() => {
+                    setShowReset(true)
+                    setResetEmail(email)
+                    setResetError(null)
+                    setResetMessage(null)
+                  }}
+                >
+                  Passwort vergessen?
+                </Button>
+              )}
             </div>
 
             {error && (
@@ -142,6 +180,36 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               {isSignUp ? "Bereits ein Konto? Hier anmelden" : "Noch kein Konto? Hier registrieren"}
             </Button>
           </div>
+
+          {showReset && (
+            <form onSubmit={handleResetPassword} className="mt-4 space-y-2">
+              <Label htmlFor="reset-email">E-Mail für Passwort-Reset</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="max@beispiel.de"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
+              <div className="flex gap-2">
+                <Button type="submit" disabled={loading} className="w-full">Link senden</Button>
+                <Button type="button" variant="outline" onClick={() => setShowReset(false)} className="w-full">Abbrechen</Button>
+              </div>
+              {resetError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{resetError}</AlertDescription>
+                </Alert>
+              )}
+              {resetMessage && (
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>{resetMessage}</AlertDescription>
+                </Alert>
+              )}
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

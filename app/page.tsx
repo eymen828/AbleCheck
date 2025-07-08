@@ -33,6 +33,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  HelpCircle,
 } from "lucide-react"
 import { upload } from "@vercel/blob/client"
 import { supabase, type PlaceRating, type Review, type Profile } from "@/lib/supabase"
@@ -45,6 +46,8 @@ import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
 import { moderateContent, shouldBlockContent, getContentWarning } from "@/lib/content-filter"
 import { AccessibleButton } from "@/components/accessible-button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
 interface StarRatingProps {
   rating: number
@@ -232,7 +235,7 @@ export default function AbleCheckApp() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<"list" | "form" | "place-detail" | "profile">("list")
+  const [view, setView] = useState<"list" | "form" | "place-detail" | "profile" | "checkin-form" | "checkin-list">("list")
   const [places, setPlaces] = useState<PlaceRating[]>([])
   const [filteredPlaces, setFilteredPlaces] = useState<PlaceRating[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -273,6 +276,39 @@ export default function AbleCheckApp() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [contentWarning, setContentWarning] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [showReviewTypeDialog, setShowReviewTypeDialog] = useState(false)
+  const [reviewType, setReviewType] = useState<null | "standard" | "checkin">(null)
+  const [showCheckInIntro, setShowCheckInIntro] = useState(false)
+  const [showCheckInHelp, setShowCheckInHelp] = useState(false)
+  const [checkInTimer, setCheckInTimer] = useState(0)
+  const [checkInActive, setCheckInActive] = useState(false)
+  const [checkInLocation, setCheckInLocation] = useState<GeolocationPosition | null>(null)
+  const [checkInError, setCheckInError] = useState<string | null>(null)
+  const [showCheckInForm, setShowCheckInForm] = useState(false)
+  const [checkInAllowed, setCheckInAllowed] = useState(false)
+  const [checkInIntroSeen, setCheckInIntroSeen] = useLocalStorage<boolean>("checkin_intro_seen", false)
+  const [showInfoDialog, setShowInfoDialog] = useState(false)
+  const [onboardingStep, setOnboardingStep] = useState(0)
+  const [showCheckInPlaceSelect, setShowCheckInPlaceSelect] = useState(false)
+  const [checkInSelectedPlace, setCheckInSelectedPlace] = useState<PlaceRating | null>(null)
+  const onboardingSlides = [
+    {
+      title: "Willkommen bei AbleCheck!",
+      desc: "Mit AbleCheck kannst du Orte auf ihre Barrierefreiheit bewerten und anderen helfen, passende Orte zu finden."
+    },
+    {
+      title: "So funktioniert's",
+      desc: "Klicke auf das Plus, um eine neue Bewertung abzugeben. Nutze die Filter und Suche, um Orte zu finden."
+    },
+    {
+      title: "Check-In-Bewertungen",
+      desc: "Check-In-Bewertungen sind besonders vertrauenswürdig, da sie vor Ort bestätigt werden. Nach 2 Minuten und GPS-Bestätigung kannst du eine Check-In-Bewertung abgeben."
+    },
+    {
+      title: "Viel Spaß!",
+      desc: "Viel Spaß beim Bewerten und Entdecken!"
+    }
+  ]
 
   const { handleAccessibleClick, announcePageChange, announceFormField } = useAccessibilityMode()
 
@@ -631,7 +667,7 @@ export default function AbleCheckApp() {
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, isCheckIn = false) => {
     e.preventDefault()
     if (!formData.placeName.trim() || !user) return
 
@@ -681,6 +717,7 @@ export default function AbleCheckApp() {
         comments: moderation.filteredText || null,
         images: formData.images.length > 0 ? formData.images : null,
         is_anonymous: formData.isAnonymous,
+        is_checkin: isCheckIn,
       }
 
       const { error } = await supabase.from("reviews").upsert(reviewData)
@@ -809,6 +846,41 @@ export default function AbleCheckApp() {
     if (userProfile?.username) return userProfile.username.charAt(0).toUpperCase()
     return user?.email?.charAt(0).toUpperCase() || "B"
   }
+
+  // Check-In-Logik
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (checkInActive) {
+      setCheckInTimer(0)
+      setCheckInAllowed(false)
+      setCheckInError(null)
+      // Start timer
+      timer = setInterval(() => {
+        setCheckInTimer((prev) => prev + 1)
+      }, 1000)
+      // Start GPS
+      const geoId = navigator.geolocation.watchPosition(
+        (pos) => {
+          setCheckInLocation(pos)
+          setCheckInError(null)
+        },
+        (err) => {
+          setCheckInError("GPS konnte nicht abgerufen werden. Bitte Standortfreigabe erlauben.")
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+      )
+      return () => {
+        clearInterval(timer)
+        navigator.geolocation.clearWatch(geoId)
+      }
+    }
+  }, [checkInActive])
+
+  useEffect(() => {
+    if (checkInTimer >= 120 && checkInLocation) {
+      setCheckInAllowed(true)
+    }
+  }, [checkInTimer, checkInLocation])
 
   if (!isHydrated) {
     return (
@@ -1127,20 +1199,12 @@ export default function AbleCheckApp() {
           {/* Add Review Button */}
           {!userReview && (
             <Button
-              onClick={(e) =>
-                handleAccessibleClick(
-                  e.currentTarget,
-                  () => {
-                    setFormData({
-                      ...formData,
-                      placeName: selectedPlace.name,
-                      address: selectedPlace.address || "",
-                    })
-                    setView("form")
-                  },
-                  "Bewertung für diesen Ort hinzufügen",
-                )
-              }
+              onClick={() => {
+                setShowReviewTypeDialog(true)
+                if (selectedPlace) {
+                  setFormData({ ...formData, placeName: selectedPlace.name, address: selectedPlace.address || "" })
+                }
+              }}
               className="w-full gap-2"
               size="lg"
             >
@@ -1541,38 +1605,29 @@ export default function AbleCheckApp() {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
-      <div className="sticky top-0 bg-card border-b z-10 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="w-6 h-6 text-blue-600" />
-            <div>
-              <h1 className="text-xl font-bold text-blue-600">AbleCheck</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">Bewerten Sie Orte auf ihre Zugänglichkeit</p>
-            </div>
+      <div className="sticky top-0 bg-card border-b z-10 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <CheckCircle className="w-6 h-6 text-blue-600" />
+          <div>
+            <h1 className="text-xl font-bold text-blue-600">AbleCheck</h1>
+            <p className="text-xs text-muted-foreground hidden sm:block">Bewerten Sie Orte auf ihre Zugänglichkeit</p>
           </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={userProfile?.avatar_url || ""} />
-                <AvatarFallback>{getUserInitial()}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm text-muted-foreground">{getUserDisplayName()}</span>
-            </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" title="Hilfe" onClick={() => setShowInfoDialog(true)}>
+            <HelpCircle className="w-5 h-5" />
+          </Button>
+          <div className="hidden md:flex items-center gap-2">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={userProfile?.avatar_url || ""} />
+              <AvatarFallback>{getUserInitial()}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-muted-foreground">{getUserDisplayName()}</span>
             <AccessibilitySettings />
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={() => setView("profile")}>
-              <Settings className="w-4 h-4 mr-2" />
-              Profil
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Abmelden
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setView("profile")}> <Settings className="w-4 h-4 mr-2" /> Profil </Button>
+            <Button variant="outline" size="sm" onClick={handleSignOut}> <LogOut className="w-4 h-4 mr-2" /> Abmelden </Button>
           </div>
-
-          {/* Mobile Navigation */}
           <MobileMenu
             user={user}
             userProfile={userProfile}
@@ -1619,14 +1674,184 @@ export default function AbleCheckApp() {
 
         {/* Add Review Button */}
         <AccessibleButton
-          onAccessibleClick={() => setView("form")}
-          description="Neuen Ort bewerten - öffnet das Bewertungsformular"
+          onAccessibleClick={() => setShowReviewTypeDialog(true)}
+          description="Neuen Ort bewerten - öffnet die Bewertungsart-Auswahl"
           className="w-full gap-2"
           size="lg"
         >
           <Plus className="w-5 h-5" />
           Ort bewerten
         </AccessibleButton>
+
+        {/* Dialog für Bewertungsart-Auswahl */}
+        <Dialog open={showReviewTypeDialog} onOpenChange={setShowReviewTypeDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Bewertungsart wählen</DialogTitle>
+              <DialogDescription>
+                Möchtest du eine Standard-Bewertung oder eine Check-In-Bewertung abgeben?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 mt-4">
+              <Button
+                variant="default"
+                onClick={() => {
+                  setShowReviewTypeDialog(false)
+                  setReviewType("standard")
+                  if (selectedPlace) {
+                    setFormData({ ...formData, placeName: selectedPlace.name, address: selectedPlace.address || "" })
+                  }
+                  setView("form")
+                }}
+                className="w-full"
+              >
+                Standard-Bewertung
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowReviewTypeDialog(false)
+                  setReviewType("checkin")
+                  if (!checkInIntroSeen) {
+                    setShowCheckInIntro(true)
+                  } else {
+                    setCheckInActive(true)
+                  }
+                  if (selectedPlace) {
+                    setFormData({ ...formData, placeName: selectedPlace.name, address: selectedPlace.address || "" })
+                  }
+                }}
+                className="w-full"
+              >
+                Check-In-Bewertung
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowReviewTypeDialog(false)} className="w-full">Abbrechen</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Check-In Einführung Dialog */}
+        <Dialog open={showCheckInIntro} onOpenChange={setShowCheckInIntro}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Was ist eine Check-In-Bewertung?</DialogTitle>
+              <DialogDescription>
+                Bei einer Check-In-Bewertung bestätigst du durch deinen Aufenthalt (mind. 2 Minuten, geprüft per GPS), dass du wirklich vor Ort bist. <br /><br />
+                <b>Wichtig:</b> Dafür werden deine GPS-Daten genutzt. Diese werden <b>nicht verkauft oder anderweitig genutzt</b>, sondern nur zur Überprüfung deines Aufenthalts verwendet.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 text-sm text-muted-foreground">
+              Nach Ablauf der Zeit kannst du eine Check-In-Bewertung abgeben. Diese wird besonders hervorgehoben.
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  setCheckInIntroSeen(true)
+                  setShowCheckInIntro(false)
+                  setCheckInActive(true)
+                }}
+                className="w-full"
+              >
+                Verstanden & Starten
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Check-In Hilfe Dialog */}
+        <Dialog open={showCheckInHelp} onOpenChange={setShowCheckInHelp}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Check-In-Bewertung Hilfe</DialogTitle>
+              <DialogDescription>
+                Bei einer Check-In-Bewertung bestätigst du durch deinen Aufenthalt (mind. 2 Minuten, geprüft per GPS), dass du wirklich vor Ort bist. <br /><br />
+                <b>Wichtig:</b> Dafür werden deine GPS-Daten genutzt. Diese werden <b>nicht verkauft oder anderweitig genutzt</b>, sondern nur zur Überprüfung deines Aufenthalts verwendet.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setShowCheckInHelp(false)} className="w-full">Schließen</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Check-In Stoppuhr & GPS */}
+        {checkInActive && (
+          <Dialog open={checkInActive} onOpenChange={(open) => { if (!open) setCheckInActive(false) }}>
+            <DialogContent>
+              <div className="flex justify-between items-center mb-2">
+                <DialogTitle>Check-In läuft...</DialogTitle>
+                <Button onClick={() => setShowCheckInHelp(true)} variant="ghost" size="icon" className="ml-2" title="Hilfe">
+                  <HelpCircle className="w-5 h-5" />
+                </Button>
+              </div>
+              <DialogDescription>
+                Bitte bleibe für mindestens 2 Minuten am Ort. Deine Anwesenheit wird per GPS geprüft.
+              </DialogDescription>
+              <div className="flex flex-col items-center gap-4 mt-4">
+                <div className="text-4xl font-mono">{Math.floor(checkInTimer/60).toString().padStart(2,"0")}:{(checkInTimer%60).toString().padStart(2,"0")}</div>
+                <div className="text-sm text-muted-foreground">
+                  {checkInLocation ? "GPS-Signal erkannt" : "Warte auf GPS..."}
+                </div>
+                {checkInError && <Alert variant="destructive"><AlertDescription>{checkInError}</AlertDescription></Alert>}
+                <Button
+                  onClick={() => {
+                    setCheckInActive(false)
+                    setShowCheckInPlaceSelect(true)
+                  }}
+                  className="w-full"
+                  disabled={!checkInAllowed}
+                >
+                  {checkInAllowed ? "Weiter" : "Mindestens 2 Minuten warten..."}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Dialog: Nach Check-In-Countdown Ort auswählen */}
+        <Dialog open={showCheckInPlaceSelect} onOpenChange={setShowCheckInPlaceSelect}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Wo bist du?</DialogTitle>
+              <DialogDescription>
+                Bitte wähle den Ort aus, an dem du dich gerade befindest. Nur dann kannst du eine Check-In-Bewertung abgeben.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-64 overflow-y-auto flex flex-col gap-2 mt-2">
+              {places.length === 0 ? (
+                <div className="text-muted-foreground">Keine Orte gefunden.</div>
+              ) : (
+                places.map((place) => (
+                  <Button
+                    key={place.id}
+                    variant={checkInSelectedPlace?.id === place.id ? "default" : "outline"}
+                    className="w-full justify-start"
+                    onClick={() => setCheckInSelectedPlace(place)}
+                  >
+                    {place.name} {place.address && <span className="text-xs text-muted-foreground ml-2">{place.address}</span>}
+                  </Button>
+                ))
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  if (checkInSelectedPlace) {
+                    setShowCheckInPlaceSelect(false)
+                    setFormData({ ...formData, placeName: checkInSelectedPlace.name, address: checkInSelectedPlace.address || "" })
+                    setView("checkin-form")
+                  }
+                }}
+                disabled={!checkInSelectedPlace}
+                className="w-full"
+              >
+                Weiter zur Bewertung
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Places List */}
         {filteredPlaces.length === 0 ? (
@@ -1718,6 +1943,28 @@ export default function AbleCheckApp() {
           </div>
         )}
       </div>
+
+      {/* Mehrseitiges Onboarding-Dialog */}
+      <Dialog open={showInfoDialog} onOpenChange={(open) => { setShowInfoDialog(open); setOnboardingStep(0); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{onboardingSlides[onboardingStep].title}</DialogTitle>
+            <DialogDescription>{onboardingSlides[onboardingStep].desc}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <div className="flex w-full gap-2">
+              {onboardingStep > 0 && (
+                <Button variant="outline" onClick={() => setOnboardingStep(onboardingStep - 1)} className="w-full">Zurück</Button>
+              )}
+              {onboardingStep < onboardingSlides.length - 1 ? (
+                <Button onClick={() => setOnboardingStep(onboardingStep + 1)} className="w-full">Weiter</Button>
+              ) : (
+                <Button onClick={() => setShowInfoDialog(false)} className="w-full">Fertig</Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
