@@ -28,7 +28,7 @@ interface AppInfoDialogProps {
 export function AppInfoDialog({ open, onOpenChange }: AppInfoDialogProps) {
   const handleWhatsAppClick = () => {
     // WhatsApp-Kanal Link hier einfügen
-    window.open("https://whatsapp.com/channel/0029VaKyPO8JkK8wz8uqiN3v", "_blank")
+    window.open("https://whatsapp.com/channel/0029VbB9KEH1Hspy6e949l10", "_blank")
   }
 
   return (
