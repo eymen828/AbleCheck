@@ -57,7 +57,7 @@ export function ReviewTypeSelector({ onSelectStandard, onSelectCheckIn, onCancel
             </div>
             
             <Button className="w-full" onClick={onSelectStandard}>
-              Zurzeit nicht verfügbar
+              Standart Bewertung abgeben
             </Button>
           </CardContent>
         </Card>
