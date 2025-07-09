@@ -61,7 +61,6 @@ export default function CheckInReviewsPage() {
 
   const loadCheckInReviews = async () => {
     try {
-      // Lade Check-In Bewertungen mit Platz- und Benutzerinformationen
       const { data, error } = await supabase
         .from('reviews')
         .select(`
@@ -76,14 +75,36 @@ export default function CheckInReviewsPage() {
           comments,
           created_at,
           is_anonymous,
-          places!inner(name, address),
+          check_in_verified,
+          places(name, address),
           profiles(username)
         `)
         .eq('check_in_verified', true)
         .order('created_at', { ascending: false })
         .limit(50)
 
-      if (error) throw error
+      if (error) {
+        console.error('Fehler beim Laden der Check-In Bewertungen:', error)
+        // Fallback ohne Joins
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('check_in_verified', true)
+          .order('created_at', { ascending: false })
+          .limit(50)
+        
+        if (fallbackError) throw fallbackError
+        
+        const formattedReviews = fallbackData?.map(review => ({
+          ...review,
+          place_name: 'Unbekannter Ort',
+          place_address: null,
+          username: review.is_anonymous ? null : 'Unbekannt',
+        })) || []
+        
+        setReviews(formattedReviews)
+        return
+      }
 
       const formattedReviews = data?.map(review => ({
         id: review.id,
@@ -106,6 +127,7 @@ export default function CheckInReviewsPage() {
       setReviews(formattedReviews)
     } catch (error) {
       console.error('Fehler beim Laden der Check-In Bewertungen:', error)
+      setReviews([])
     }
   }
 

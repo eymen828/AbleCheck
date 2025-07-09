@@ -121,15 +121,29 @@ export default function PlacePage() {
         .from('reviews')
         .select(`
           *,
-          profiles(username)
+          profiles!inner(username)
         `)
         .eq('place_id', placeId)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setReviews(data || [])
+      if (error) {
+        console.error('Fehler beim Laden der Bewertungen:', error)
+        // Fallback: Lade Bewertungen ohne Profile-Join
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('place_id', placeId)
+          .order('created_at', { ascending: false })
+        
+        if (fallbackError) throw fallbackError
+        setReviews(fallbackData || [])
+      } else {
+        setReviews(data || [])
+      }
     } catch (error) {
       console.error('Fehler beim Laden der Bewertungen:', error)
+      // Setze leeres Array als Fallback
+      setReviews([])
     } finally {
       setLoading(false)
     }
@@ -381,6 +395,20 @@ export default function PlacePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Debug Info - nur in Development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
+            <p className="text-sm">
+              <strong>Debug:</strong> {reviews.length} Bewertungen geladen für Ort {placeId}
+            </p>
+            {reviews.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Erste Bewertung: {reviews[0].id} von User {reviews[0].user_id}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Ort-Übersicht */}
         <div className="grid gap-6 lg:grid-cols-3 mb-8">
           <div className="lg:col-span-2">
@@ -725,6 +753,12 @@ export default function PlacePage() {
                         <Calendar className="w-3 h-3" />
                         {formatDate(review.created_at)}
                       </div>
+                      {review.check_in_verified && (
+                        <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
+                          <Shield className="w-3 h-3" />
+                          Check-In
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

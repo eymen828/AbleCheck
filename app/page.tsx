@@ -73,10 +73,37 @@ export default function HomePage() {
         .select('*')
         .order('avg_overall_rating', { ascending: false })
 
-      if (error) throw error
-      setPlaces(data || [])
+      if (error) {
+        console.error('Fehler beim Laden der Orte:', error)
+        // Fallback: Lade direkt aus places Tabelle
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('places')
+          .select('*')
+          .order('created_at', { ascending: false })
+        
+        if (fallbackError) throw fallbackError
+        
+        // Konvertiere zu PlaceRating Format
+        const convertedData = fallbackData?.map(place => ({
+          ...place,
+          review_count: 0,
+          checkin_review_count: 0,
+          avg_wheelchair_access: null,
+          avg_entrance_access: null,
+          avg_bathroom_access: null,
+          avg_table_height: null,
+          avg_staff_helpfulness: null,
+          avg_overall_rating: null,
+          weighted_avg_rating: null,
+        })) || []
+        
+        setPlaces(convertedData)
+      } else {
+        setPlaces(data || [])
+      }
     } catch (error) {
       console.error('Fehler beim Laden der Orte:', error)
+      setPlaces([])
     } finally {
       setLoading(false)
     }
@@ -272,6 +299,15 @@ export default function HomePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Debug Info - nur in Development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+            <p className="text-sm">
+              <strong>Debug:</strong> {places.length} Orte geladen, User: {user ? 'angemeldet' : 'nicht angemeldet'}
+            </p>
+          </div>
+        )}
+
         {/* Statistiken */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card>
