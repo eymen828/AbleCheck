@@ -175,7 +175,8 @@ export function CheckInAddressInput({ onAddressConfirmed, onCancel, onShowHelp }
               <Badge variant="outline" className="text-xs px-1 py-0">
                 Verifiziert
               </Badge>
-              <span>Bessere Sichtbarkeit</span>
+              <li>• Sie müssen maximal 100 Meter vom Ort entfernt sein</li>
+              <li>• GPS wird zur genauen Standort-Verifikation verwendet</li>
             </div>
           </div>
         </div>

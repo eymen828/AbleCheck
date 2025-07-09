@@ -83,7 +83,7 @@ export function CheckInHelpDialog({ open, onOpenChange }: CheckInHelpDialogProps
                 <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold">4</div>
                 <div>
                   <p className="font-medium">Am Ort bleiben</p>
-                  <p className="text-sm text-muted-foreground">Bleiben Sie mindestens 2 Minuten in der Nähe (max. 100m Entfernung)</p>
+                  <p className="text-sm text-muted-foreground">Bleiben Sie mindestens 2 Minuten vor Ort (maximal 100 Meter Entfernung)</p>
                 </div>
               </div>
               <div className="flex gap-3">

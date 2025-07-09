@@ -238,9 +238,9 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Standort-Status:</span>
-            <Badge variant={isLocationVerified ? "default" : "secondary"}>
+            <Badge variant={isLocationVerified ? "default" : "destructive"}>
               <MapPin className="w-3 h-3 mr-1" />
-              {isLocationVerified ? "Verifiziert" : "Wird geprüft..."}
+              {isLocationVerified ? "Verifiziert (≤100m)" : "Zu weit entfernt (>100m)"}
             </Badge>
           </div>
           
@@ -263,7 +263,7 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
               Position geprüft: {positionChecks} mal
               {locationChecks.length > 0 && (
                 <span className="ml-2">
-                  Ø Entfernung: {Math.round(locationChecks.reduce((sum, dist) => sum + dist, 0) / locationChecks.length)}m
+                  Ø Entfernung: {Math.round(locationChecks.reduce((sum, dist) => sum + dist, 0) / locationChecks.length)}m (max. 100m)
                 </span>
               )}
             </div>

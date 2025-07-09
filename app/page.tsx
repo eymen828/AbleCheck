@@ -29,6 +29,7 @@ import { supabase } from "@/lib/supabase"
 import type { PlaceRating } from "@/lib/supabase"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useGeolocation } from "@/hooks/use-geolocation"
+import { PlaceSelector } from "@/components/place-selector"
 
 export default function HomePage() {
   const [places, setPlaces] = useState<PlaceRating[]>([])
@@ -40,6 +41,7 @@ export default function HomePage() {
   const [showCheckInAddressInput, setShowCheckInAddressInput] = useState(false)
   const [showCheckInTimer, setShowCheckInTimer] = useState(false)
   const [showCheckInHelp, setShowCheckInHelp] = useState(false)
+  const [showPlaceSelector, setShowPlaceSelector] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState<PlaceRating | null>(null)
   const [checkInAddress, setCheckInAddress] = useState("")
   const [checkInCoordinates, setCheckInCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -90,10 +92,27 @@ export default function HomePage() {
 
   const handleSelectStandardReview = () => {
     setShowReviewTypeSelector(false)
-    // Hier würde die normale Bewertungslogik stehen
-    // Für jetzt leiten wir zur ersten verfügbaren Stelle weiter
-    if (places.length > 0) {
-      window.location.href = `/place/${places[0].id}?review=true`
+    
+    // Zeige Ort-Auswahl für Standard-Bewertung
+    setShowPlaceSelector(true)
+  }
+
+  const handleCreateNewPlace = async (name: string, address: string) => {
+    try {
+      // Erstelle neuen Ort in der Datenbank
+      const { data: newPlace, error } = await supabase
+        .from('places')
+        .insert({ name, address })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Leite zur Bewertungsseite weiter
+      window.location.href = `/place/${newPlace.id}?review=true`
+    } catch (error) {
+      console.error('Fehler beim Erstellen des Ortes:', error)
+      alert('Fehler beim Erstellen des Ortes. Bitte versuchen Sie es erneut.')
     }
   }
 
@@ -170,6 +189,18 @@ export default function HomePage() {
 
   if (showAuth) {
     return <Auth onAuthSuccess={() => { setShowAuth(false); checkUser() }} />
+  }
+
+  if (showPlaceSelector) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <PlaceSelector
+          places={places}
+          onCancel={() => setShowPlaceSelector(false)}
+          onCreateNew={handleCreateNewPlace}
+        />
+      </div>
+    )
   }
 
   if (showReviewTypeSelector) {
