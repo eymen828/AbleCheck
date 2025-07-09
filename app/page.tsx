@@ -11,6 +11,7 @@ import { ReviewTypeSelector } from "@/components/review-type-selector"
 import { CheckInAddressInput } from "@/components/check-in-address-input"
 import { CheckInTimer, type CheckInData } from "@/components/check-in-timer"
 import { CheckInHelpDialog } from "@/components/check-in-help-dialog"
+import { AppInfoDialog } from "@/components/app-info-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AccessibilitySettings } from "@/components/accessibility-settings"
 import { Auth } from "@/components/auth"
@@ -24,7 +25,8 @@ import {
   Shield,
   TrendingUp,
   HelpCircle,
-  User
+  User,
+  Info
 } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
@@ -46,6 +48,7 @@ export default function HomePage() {
   const [showCheckInAddressInput, setShowCheckInAddressInput] = useState(false)
   const [showCheckInTimer, setShowCheckInTimer] = useState(false)
   const [showCheckInHelp, setShowCheckInHelp] = useState(false)
+  const [showAppInfo, setShowAppInfo] = useState(false)
   const [showPlaceSelector, setShowPlaceSelector] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState<PlaceRating | null>(null)
   const [checkInAddress, setCheckInAddress] = useState("")
@@ -316,6 +319,15 @@ export default function HomePage() {
               <Button 
                 variant="ghost" 
                 size="sm" 
+                onClick={() => setShowAppInfo(true)}
+                className="gap-2"
+              >
+                <Info className="w-4 h-4" />
+                <span className="hidden sm:inline">Info</span>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
                 onClick={() => {
                   setHasCompletedOnboarding(false)
                   setShowOnboarding(true)
@@ -327,12 +339,12 @@ export default function HomePage() {
               </Button>
               {user ? (
                 <div className="flex items-center gap-2">
-                  <ProfileSettings user={user} onProfileUpdate={checkUser} />
-                  <UserReviews user={user} />
                   <Button onClick={handleAddReview} size="sm" className="gap-2">
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline">Bewertung</span>
                   </Button>
+                  <ProfileSettings user={user} onProfileUpdate={checkUser} />
+                  <UserReviews user={user} />
                 </div>
               ) : (
                 <Button onClick={() => setShowAuth(true)} size="sm" className="gap-2">
@@ -346,14 +358,7 @@ export default function HomePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Debug Info - nur in Development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-            <p className="text-sm">
-              <strong>Debug:</strong> {places.length} Orte geladen, User: {user ? 'angemeldet' : 'nicht angemeldet'}
-            </p>
-          </div>
-        )}
+        
 
         {/* Statistiken */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -555,6 +560,12 @@ export default function HomePage() {
             startCheckInProcess()
           }
         }} 
+      />
+
+      {/* App Info Dialog */}
+      <AppInfoDialog 
+        open={showAppInfo} 
+        onOpenChange={setShowAppInfo} 
       />
     </div>
   )

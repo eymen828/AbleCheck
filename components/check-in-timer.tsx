@@ -143,9 +143,11 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
     // Prüfe zunächst die aktuelle Position
     if (!position && !isLoading) {
       getCurrentPosition()
+      setError("Position wird ermittelt. Bitte warten Sie einen Moment.")
+      return
     }
     
-    // Validiere Standort vor dem Start
+    // Validiere Standort vor dem Start - Timer kann NICHT gestartet werden wenn > 100m
     if (targetLocation && position) {
       const distance = calculateDistance(
         position.latitude,
@@ -155,9 +157,15 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
       )
       
       if (distance > MAX_DISTANCE) {
-        setError("Sie sind zu weit vom Zielort entfernt (>" + MAX_DISTANCE + "m). Bitte begeben Sie sich näher zum angegebenen Ort.")
+        setError(`Sie sind zu weit vom Zielort entfernt (${Math.round(distance)}m > ${MAX_DISTANCE}m). Der Timer kann nicht gestartet werden. Bitte begeben Sie sich näher zum angegebenen Ort.`)
         return
       }
+    }
+
+    // Sicherheitscheck - kein Timer ohne Position und Ziel
+    if (!targetLocation || !position) {
+      setError("Standort oder Zieladresse nicht verfügbar. Timer kann nicht gestartet werden.")
+      return
     }
 
     const now = Date.now()
@@ -167,6 +175,7 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
     setLocationChecks([])
     setPositionChecks(0)
     setIsLocationVerified(false)
+    setError(null) // Clear any previous errors
     announceAction("Check-In Timer gestartet")
   }
 

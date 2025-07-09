@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Mail, Lock, CheckCircle, AlertCircle } from "lucide-react"
+import { Loader2, Mail, Lock, CheckCircle, AlertCircle, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 interface AuthProps {
@@ -21,6 +21,8 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [username, setUsername] = useState("")
+  const [fullName, setFullName] = useState("")
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,9 +32,24 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        if (!username.trim()) {
+          setError("Benutzername ist erforderlich")
+          return
+        }
+        if (!fullName.trim()) {
+          setError("Vollständiger Name ist erforderlich")
+          return
+        }
+
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              username: username.trim(),
+              full_name: fullName.trim(),
+            }
+          }
         })
 
         if (error) throw error
@@ -71,6 +88,40 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
+            {isSignUp && (
+              <>
+                <div>
+                  <Label htmlFor="username">Benutzername</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="maxmuster"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="fullName">Vollständiger Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Max Mustermann"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
             <div>
               <Label htmlFor="email">E-Mail</Label>
               <div className="relative">
