@@ -51,8 +51,9 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
   const [locationChecks, setLocationChecks] = useState<number[]>([])
   const [positionChecks, setPositionChecks] = useState(0)
   const [isLocationVerified, setIsLocationVerified] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   
-  const { position, error, isLoading, getCurrentPosition, watchPosition, clearWatch } = useGeolocation()
+  const { position, error: geoError, isLoading, getCurrentPosition, watchPosition, clearWatch } = useGeolocation()
   const { announceAction } = useAccessibilityMode()
   
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -139,6 +140,26 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
   }
 
   const startTimer = () => {
+    // Prüfe zunächst die aktuelle Position
+    if (!position && !isLoading) {
+      getCurrentPosition()
+    }
+    
+    // Validiere Standort vor dem Start
+    if (targetLocation && position) {
+      const distance = calculateDistance(
+        position.latitude,
+        position.longitude,
+        targetLocation.latitude,
+        targetLocation.longitude
+      )
+      
+      if (distance > MAX_DISTANCE) {
+        setError("Sie sind zu weit vom Zielort entfernt (>" + MAX_DISTANCE + "m). Bitte begeben Sie sich näher zum angegebenen Ort.")
+        return
+      }
+    }
+
     const now = Date.now()
     setStartTime(now)
     setIsRunning(true)
@@ -244,10 +265,10 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
             </Badge>
           </div>
           
-          {error && (
+          {(error || geoError) && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error.message}</AlertDescription>
+              <AlertDescription>{error || geoError?.message}</AlertDescription>
             </Alert>
           )}
 
@@ -273,7 +294,11 @@ export function CheckInTimer({ address, targetLocation, onCheckInComplete, onCan
         {/* Control Buttons */}
         <div className="flex gap-2">
           {!isRunning ? (
-            <Button onClick={startTimer} className="flex-1" disabled={!targetLocation}>
+            <Button 
+              onClick={startTimer} 
+              className="flex-1" 
+              disabled={!targetLocation || isLoading}
+            >
               <Play className="w-4 h-4 mr-2" />
               {startTime ? "Fortsetzen" : "Starten"}
             </Button>

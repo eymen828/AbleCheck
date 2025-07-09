@@ -23,7 +23,8 @@ import {
   Search,
   Shield,
   TrendingUp,
-  HelpCircle
+  HelpCircle,
+  User
 } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
@@ -32,6 +33,8 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useGeolocation } from "@/hooks/use-geolocation"
 import { PlaceSelector } from "@/components/place-selector"
 import { Onboarding } from "@/components/onboarding"
+import { ProfileSettings } from "@/components/profile-settings"
+import { UserReviews } from "@/components/user-reviews"
 
 export default function HomePage() {
   const [places, setPlaces] = useState<PlaceRating[]>([])
@@ -313,16 +316,28 @@ export default function HomePage() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setShowOnboarding(true)}
+                onClick={() => {
+                  setHasCompletedOnboarding(false)
+                  setShowOnboarding(true)
+                }}
                 className="gap-2"
               >
                 <HelpCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">Hilfe</span>
+                <span className="hidden sm:inline">Tutorial</span>
               </Button>
-              {user && (
-                <Button onClick={handleAddReview} size="sm" className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Bewertung</span>
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <ProfileSettings user={user} onProfileUpdate={checkUser} />
+                  <UserReviews user={user} />
+                  <Button onClick={handleAddReview} size="sm" className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Bewertung</span>
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={() => setShowAuth(true)} size="sm" className="gap-2">
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">Anmelden</span>
                 </Button>
               )}
             </div>
@@ -374,9 +389,9 @@ export default function HomePage() {
                 <Shield className="w-5 h-5 text-purple-600" />
                 <div>
                   <p className="text-2xl font-bold">
-                    {places.filter(place => place.review_count > 0).length}
+                    {places.reduce((sum, place) => sum + place.checkin_review_count, 0)}
                   </p>
-                  <p className="text-sm text-muted-foreground">Mit Check-Ins</p>
+                  <p className="text-sm text-muted-foreground">Check-In Bewertungen</p>
                 </div>
               </div>
             </CardContent>
@@ -457,7 +472,7 @@ export default function HomePage() {
                     <Link href={`/place/${place.id}`} className="hover:underline flex-1">
                       {place.name}
                     </Link>
-                    {place.review_count > 0 && (
+                    {place.checkin_review_count > 0 && (
                       <Badge variant="outline" className="ml-2">
                         <Shield className="w-3 h-3 mr-1" />
                         Verifiziert
