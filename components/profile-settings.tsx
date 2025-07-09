@@ -57,8 +57,16 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
   }, [user, isOpen])
 
   const loadProfile = async () => {
+    if (!user?.id) {
+      setError('Benutzer nicht gefunden')
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
+      setError(null)
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -78,6 +86,7 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
         })
       } else {
         // Erstelle Profil wenn es nicht existiert
+        setProfile(null)
         setFormData({
           username: "",
           full_name: "",
@@ -87,12 +96,23 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
     } catch (error: any) {
       console.error('Fehler beim Laden des Profils:', error)
       setError('Fehler beim Laden des Profils')
+      // Setze leere Formulardaten auch bei Fehlern
+      setFormData({
+        username: "",
+        full_name: "",
+        avatar_url: ""
+      })
     } finally {
       setLoading(false)
     }
   }
 
   const saveProfile = async () => {
+    if (!user?.id) {
+      setError('Benutzer nicht gefunden')
+      return
+    }
+
     try {
       setSaving(true)
       setError(null)
@@ -182,7 +202,9 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
     setSuccess(false)
   }
 
-  if (!user) return null
+  if (!user?.id) {
+    return null
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -218,7 +240,7 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
                   <AvatarFallback>
                     {formData.full_name ? formData.full_name.substring(0, 2).toUpperCase() : 
                      formData.username ? formData.username.substring(0, 2).toUpperCase() : 
-                     user.email ? user.email.substring(0, 2).toUpperCase() : '??'}
+                     user?.email ? user.email.substring(0, 2).toUpperCase() : '??'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">

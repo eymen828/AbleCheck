@@ -372,11 +372,9 @@ export default function HomePage() {
 
                   {user && (
                     <>
-                      <DropdownMenuItem asChild>
-                        <div className="w-full">
-                          <ProfileSettings user={user} onProfileUpdate={checkUser} />
-                        </div>
-                      </DropdownMenuItem>
+                      <div className="px-2 py-1.5">
+                        <ProfileSettings user={user} onProfileUpdate={checkUser} />
+                      </div>
                       <DropdownMenuSeparator />
                     </>
                   )}
