@@ -37,6 +37,14 @@ import { PlaceSelector } from "@/components/place-selector"
 import { Onboarding } from "@/components/onboarding"
 import { ProfileSettings } from "@/components/profile-settings"
 import { UserReviews } from "@/components/user-reviews"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function HomePage() {
   const [places, setPlaces] = useState<PlaceRating[]>([])
@@ -56,9 +64,9 @@ export default function HomePage() {
   const [hasSeenCheckInIntro, setHasSeenCheckInIntro] = useLocalStorage('ablecheck-checkin-intro-seen', false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('ablecheck-onboarding-completed', false)
-  
+
   const { position, getCurrentPosition } = useGeolocation()
-  
+
   const [filters, setFilters] = useState<SearchFiltersType>({
     minRating: 0,
     minReviews: 0,
@@ -69,7 +77,7 @@ export default function HomePage() {
   useEffect(() => {
     checkUser()
     loadPlaces()
-    
+
     // Show onboarding for new users
     if (!hasCompletedOnboarding) {
       setShowOnboarding(true)
@@ -95,9 +103,9 @@ export default function HomePage() {
           .from('places')
           .select('*')
           .order('created_at', { ascending: false })
-        
+
         if (fallbackError) throw fallbackError
-        
+
         // Konvertiere zu PlaceRating Format
         const convertedData = fallbackData?.map(place => ({
           ...place,
@@ -111,7 +119,7 @@ export default function HomePage() {
           avg_overall_rating: null,
           weighted_avg_rating: null,
         })) || []
-        
+
         setPlaces(convertedData)
       } else {
         setPlaces(data || [])
@@ -134,7 +142,7 @@ export default function HomePage() {
 
   const handleSelectStandardReview = () => {
     setShowReviewTypeSelector(false)
-    
+
     // Zeige Ort-Auswahl für Standard-Bewertung
     setShowPlaceSelector(true)
   }
@@ -160,7 +168,7 @@ export default function HomePage() {
 
   const handleSelectCheckInReview = () => {
     setShowReviewTypeSelector(false)
-    
+
     if (!hasSeenCheckInIntro) {
       setShowCheckInHelp(true)
       setHasSeenCheckInIntro(true)
@@ -180,7 +188,7 @@ export default function HomePage() {
     setShowCheckInTimer(false)
     // Hier würde die Check-In Bewertung erstellt werden
     console.log('Check-In abgeschlossen:', checkInData)
-    
+
     // Für jetzt leiten wir zur ersten verfügbaren Stelle weiter
     if (places.length > 0) {
       window.location.href = `/place/${places[0].id}?review=true&checkin=true`
@@ -205,16 +213,16 @@ export default function HomePage() {
   const filteredPlaces = places.filter(place => {
     const matchesSearch = place.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (place.address?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-    
+
     const matchesRating = (place.avg_overall_rating || 0) >= filters.minRating
     const matchesReviews = place.review_count >= filters.minReviews
-    
+
     return matchesSearch && matchesRating && matchesReviews
   })
 
   const sortedPlaces = [...filteredPlaces].sort((a, b) => {
     let aValue: number, bValue: number
-    
+
     switch (filters.sortBy) {
       case "rating":
         aValue = a.avg_overall_rating || 0
@@ -235,7 +243,7 @@ export default function HomePage() {
       default:
         return 0
     }
-    
+
     return filters.sortOrder === "asc" ? aValue - bValue : bValue - aValue
   })
 
@@ -314,51 +322,72 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <AccessibilitySettings />
-              <ThemeToggle />
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowAppInfo(true)}
-                className="gap-2"
-              >
-                <Info className="w-4 h-4" />
-                <span className="hidden sm:inline">Info</span>
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => {
-                  setHasCompletedOnboarding(false)
-                  setShowOnboarding(true)
-                }}
-                className="gap-2"
-              >
-                <HelpCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">Tutorial</span>
-              </Button>
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <Button onClick={handleAddReview} size="sm" className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Bewertung</span>
-                  </Button>
-                  <ProfileSettings user={user} onProfileUpdate={checkUser} />
-                  <UserReviews user={user} />
-                </div>
-              ) : (
-                <Button onClick={() => setShowAuth(true)} size="sm" className="gap-2">
-                  <User className="w-4 h-4" />
-                  <span className="hidden sm:inline">Anmelden</span>
+              {user && (
+                <Button onClick={() => setShowReviewTypeSelector(true)} size="sm" className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Bewertung</span>
                 </Button>
               )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    Einstellungen
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Optionen</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={() => setShowAppInfo(true)}>
+                    <Info className="mr-2 h-4 w-4" />
+                    App-Infos
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem onClick={() => setShowCheckInHelp(true)}>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    Check-In Hilfe
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    Onboarding wiederholen
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem>
+                    <AccessibilitySettings />
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem>
+                    <ThemeToggle />
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  {user ? (
+                    <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
+                      <User className="mr-2 h-4 w-4" />
+                      Abmelden
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={() => setShowAuth(true)}>
+                      <User className="mr-2 h-4 w-4" />
+                      Anmelden
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        
+
 
         {/* Statistiken */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -373,7 +402,7 @@ export default function HomePage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-2">
@@ -387,7 +416,7 @@ export default function HomePage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-2">
@@ -491,7 +520,7 @@ export default function HomePage() {
                     </CardDescription>
                   )}
                 </CardHeader>
-                
+
                 <CardContent>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-1">
@@ -505,7 +534,7 @@ export default function HomePage() {
                       {place.review_count} Bewertungen
                     </div>
                   </div>
-                  
+
                   {place.review_count > 0 && (
                     <div className="grid grid-cols-5 gap-2 mb-4 text-xs">
                       {[
@@ -522,7 +551,7 @@ export default function HomePage() {
                       ))}
                     </div>
                   )}
-                  
+
                   <Button asChild variant="outline" size="sm" className="w-full">
                     <Link href={`/place/${place.id}`}>
                       Details ansehen

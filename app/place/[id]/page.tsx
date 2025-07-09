@@ -778,15 +778,28 @@ export default function PlacePage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
                       {/* Profilbild */}
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className="relative w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 border-2 border-border">
                         {!review.is_anonymous && review.profiles?.avatar_url ? (
                           <img 
                             src={review.profiles.avatar_url} 
-                            alt="Profilbild" 
+                            alt={`Profilbild von ${review.profiles?.full_name || review.profiles?.username || 'Nutzer'}`}
                             className="w-full h-full object-cover"
                           />
+                        ) : review.is_anonymous ? (
+                          <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-gray-500" />
+                          </div>
                         ) : (
-                          <Users className="w-5 h-5 text-muted-foreground" />
+                          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                            {(review.profiles?.full_name || review.profiles?.username || 'U').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        
+                        {/* Verifikations-Badge über dem Profilbild */}
+                        {!review.is_anonymous && (
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
+                            <CheckCircle className="w-3 h-3 text-white" />
+                          </div>
                         )}
                       </div>
                       
@@ -799,7 +812,7 @@ export default function PlacePage() {
                           {review.check_in_verified && (
                             <Badge variant="outline" className="text-green-600 border-green-600">
                               <Shield className="w-3 h-3 mr-1" />
-                              Check-In
+                              Check-In Verifiziert
                             </Badge>
                           )}
                           {user && review.user_id === user.id && (
@@ -807,21 +820,43 @@ export default function PlacePage() {
                               Ihre Bewertung
                             </Badge>
                           )}
+                          {!review.is_anonymous && (
+                            <Badge variant="outline" className="text-purple-600 border-purple-600">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Verifizierter Nutzer
+                            </Badge>
+                          )}
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">
-                            {review.is_anonymous ? 'Anonym' : (
-                              review.profiles?.full_name || 
-                              review.profiles?.username || 
-                              'Unbekannt'
-                            )}
-                          </p>
-                          {!review.is_anonymous && review.profiles?.username && review.profiles?.full_name && (
-                            <p className="text-xs text-muted-foreground">
-                              @{review.profiles.username}
+                          <div className="flex flex-col">
+                            <p className="text-sm font-medium">
+                              {review.is_anonymous ? 'Anonym' : (
+                                review.profiles?.full_name || 
+                                review.profiles?.username || 
+                                'Unbekannt'
+                              )}
                             </p>
-                          )}
+                            {!review.is_anonymous && review.profiles?.username && review.profiles?.full_name && (
+                              <p className="text-xs text-muted-foreground">
+                                @{review.profiles.username}
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* Zusätzliche Badges für Profile */}
+                          <div className="flex flex-wrap gap-1">
+                            {!review.is_anonymous && review.profiles?.full_name && (
+                              <Badge variant="secondary" className="text-xs">
+                                Vollständiges Profil
+                              </Badge>
+                            )}
+                            {review.check_in_verified && (
+                              <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                                Standort bestätigt
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
