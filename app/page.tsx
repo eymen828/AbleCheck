@@ -370,6 +370,14 @@ export default function HomePage() {
 
                   <DropdownMenuSeparator />
 
+                  {user && (
+                    <DropdownMenuItem>
+                      <ProfileSettings user={user} onProfileUpdate={checkUser} />
+                    </DropdownMenuItem>
+                  )}
+
+                  <DropdownMenuSeparator />
+
                   {user ? (
                     <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
                       <User className="mr-2 h-4 w-4" />
