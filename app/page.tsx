@@ -22,7 +22,8 @@ import {
   Users, 
   Search,
   Shield,
-  TrendingUp
+  TrendingUp,
+  HelpCircle
 } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
@@ -30,6 +31,7 @@ import type { PlaceRating } from "@/lib/supabase"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useGeolocation } from "@/hooks/use-geolocation"
 import { PlaceSelector } from "@/components/place-selector"
+import { Onboarding } from "@/components/onboarding"
 
 export default function HomePage() {
   const [places, setPlaces] = useState<PlaceRating[]>([])
@@ -46,6 +48,8 @@ export default function HomePage() {
   const [checkInAddress, setCheckInAddress] = useState("")
   const [checkInCoordinates, setCheckInCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const [hasSeenCheckInIntro, setHasSeenCheckInIntro] = useLocalStorage('ablecheck-checkin-intro-seen', false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('ablecheck-onboarding-completed', false)
   
   const { position, getCurrentPosition } = useGeolocation()
   
@@ -59,6 +63,11 @@ export default function HomePage() {
   useEffect(() => {
     checkUser()
     loadPlaces()
+    
+    // Show onboarding for new users
+    if (!hasCompletedOnboarding) {
+      setShowOnboarding(true)
+    }
   }, [])
 
   const checkUser = async () => {
@@ -177,6 +186,16 @@ export default function HomePage() {
     setShowCheckInAddressInput(true)
   }
 
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false)
+    setHasCompletedOnboarding(true)
+  }
+
+  const handleOnboardingSkip = () => {
+    setShowOnboarding(false)
+    setHasCompletedOnboarding(true)
+  }
+
   const filteredPlaces = places.filter(place => {
     const matchesSearch = place.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (place.address?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
@@ -213,6 +232,10 @@ export default function HomePage() {
     
     return filters.sortOrder === "asc" ? aValue - bValue : bValue - aValue
   })
+
+  if (showOnboarding) {
+    return <Onboarding onComplete={handleOnboardingComplete} onSkip={handleOnboardingSkip} />
+  }
 
   if (showAuth) {
     return <Auth onAuthSuccess={() => { setShowAuth(false); checkUser() }} />
@@ -287,6 +310,15 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <AccessibilitySettings />
               <ThemeToggle />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowOnboarding(true)}
+                className="gap-2"
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">Hilfe</span>
+              </Button>
               {user && (
                 <Button onClick={handleAddReview} size="sm" className="gap-2">
                   <Plus className="w-4 h-4" />
