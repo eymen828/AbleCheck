@@ -258,7 +258,22 @@ export default function PlacePage() {
 
     } catch (error) {
       console.error('Fehler beim Speichern der Bewertung:', error)
-      alert('Fehler beim Speichern der Bewertung')
+      
+      // Detailliertere Fehlermeldung
+      let errorMessage = 'Fehler beim Speichern der Bewertung'
+      if (error.message) {
+        if (error.message.includes('duplicate key')) {
+          errorMessage = 'Sie haben bereits eine Bewertung für diesen Ort abgegeben'
+        } else if (error.message.includes('foreign key')) {
+          errorMessage = 'Ungültiger Ort oder Benutzer'
+        } else if (error.message.includes('check constraint')) {
+          errorMessage = 'Ungültige Bewertungswerte (müssen zwischen 0 und 5 liegen)'
+        } else {
+          errorMessage = `Fehler: ${error.message}`
+        }
+      }
+      
+      alert(errorMessage)
     } finally {
       setSubmitting(false)
     }
