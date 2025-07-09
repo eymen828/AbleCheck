@@ -187,10 +187,10 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <button className="flex items-center gap-2 w-full text-left px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm">
           <User className="w-4 h-4" />
           Profil bearbeiten
-        </Button>
+        </button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
