@@ -24,7 +24,8 @@ import {
   X, 
   Upload,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Camera
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import type { Profile } from "@/lib/supabase"
@@ -38,6 +39,7 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
@@ -131,6 +133,43 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
     }
   }
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Datei ist zu groß. Maximum: 5MB')
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError('Bitte wählen Sie eine Bilddatei aus')
+      return
+    }
+
+    setUploadingImage(true)
+    setError(null)
+
+    try {
+      const { upload } = await import('@vercel/blob/client')
+      
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+      })
+
+      setFormData(prev => ({
+        ...prev,
+        avatar_url: blob.url
+      }))
+    } catch (error) {
+      console.error('Fehler beim Hochladen:', error)
+      setError('Fehler beim Hochladen des Bildes')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const resetForm = () => {
     if (profile) {
       setFormData({
@@ -172,17 +211,52 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
         ) : (
           <div className="space-y-4">
             {/* Avatar */}
-            <div className="flex items-center gap-4">
-              <Avatar className="w-16 h-16">
-                <AvatarImage src={formData.avatar_url} />
-                <AvatarFallback>
-                  {formData.full_name ? formData.full_name.substring(0, 2).toUpperCase() : 
-                   formData.username ? formData.username.substring(0, 2).toUpperCase() : 
-                   user.email ? user.email.substring(0, 2).toUpperCase() : '??'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <Label htmlFor="avatar_url">Avatar URL (optional)</Label>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-16 h-16">
+                  <AvatarImage src={formData.avatar_url} />
+                  <AvatarFallback>
+                    {formData.full_name ? formData.full_name.substring(0, 2).toUpperCase() : 
+                     formData.username ? formData.username.substring(0, 2).toUpperCase() : 
+                     user.email ? user.email.substring(0, 2).toUpperCase() : '??'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <Label>Profilbild</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className="hidden"
+                      id="avatar-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                      disabled={uploadingImage}
+                      className="gap-2"
+                    >
+                      {uploadingImage ? (
+                        <>
+                          <Upload className="w-4 h-4 animate-spin" />
+                          Hochladen...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-4 h-4" />
+                          Bild wählen
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="avatar_url">Oder Avatar URL eingeben (optional)</Label>
                 <Input
                   id="avatar_url"
                   type="url"
@@ -234,7 +308,7 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
             <div className="flex gap-2">
               <Button 
                 onClick={saveProfile} 
-                disabled={saving}
+                disabled={saving || uploadingImage}
                 className="flex-1"
               >
                 <Save className="w-4 h-4 mr-2" />
@@ -243,7 +317,7 @@ export function ProfileSettings({ user, onProfileUpdate }: ProfileSettingsProps)
               <Button 
                 variant="outline" 
                 onClick={resetForm}
-                disabled={saving}
+                disabled={saving || uploadingImage}
               >
                 <X className="w-4 h-4" />
               </Button>

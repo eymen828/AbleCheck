@@ -77,12 +77,14 @@ export default function HomePage() {
   useEffect(() => {
     checkUser()
     loadPlaces()
+  }, [])
 
-    // Show onboarding for new users
+  useEffect(() => {
+    // Show onboarding for new users after component is mounted
     if (!hasCompletedOnboarding) {
       setShowOnboarding(true)
     }
-  }, [])
+  }, [hasCompletedOnboarding])
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()

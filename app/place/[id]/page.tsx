@@ -133,46 +133,46 @@ export default function PlacePage() {
 
   const loadReviews = async () => {
     try {
-      // Versuche erst mit Left Join auf profiles
-      const { data, error } = await supabase
+      // Lade Bewertungen ohne Join
+      const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
-        .select(`
-          *,
-          profiles(username, full_name, avatar_url)
-        `)
+        .select('*')
         .eq('place_id', placeId)
         .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Fehler beim Laden der Bewertungen:', error)
-        // Fallback: Lade Bewertungen ohne Profile-Join
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('reviews')
-          .select('*')
-          .eq('place_id', placeId)
-          .order('created_at', { ascending: false })
+      if (reviewsError) throw reviewsError
+
+      // Lade Profile separat
+      const userIds = reviewsData?.map(review => review.user_id).filter(Boolean) || []
+      let profilesData: any[] = []
+      
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url')
+          .in('id', userIds)
         
-        if (fallbackError) throw fallbackError
-        
-        // Sortiere eigene Bewertung nach oben
-        const sortedReviews = (fallbackData || []).sort((a, b) => {
-          if (user && a.user_id === user.id) return -1
-          if (user && b.user_id === user.id) return 1
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        })
-        setReviews(sortedReviews)
-      } else {
-        // Sortiere eigene Bewertung nach oben
-        const sortedReviews = (data || []).sort((a, b) => {
-          if (user && a.user_id === user.id) return -1
-          if (user && b.user_id === user.id) return 1
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        })
-        setReviews(sortedReviews)
+        if (!profilesError) {
+          profilesData = profiles || []
+        }
       }
+
+      // Kombiniere Bewertungen mit Profilen
+      const reviewsWithProfiles = (reviewsData || []).map(review => ({
+        ...review,
+        profiles: profilesData.find(profile => profile.id === review.user_id) || null
+      }))
+
+      // Sortiere eigene Bewertung nach oben
+      const sortedReviews = reviewsWithProfiles.sort((a, b) => {
+        if (user && a.user_id === user.id) return -1
+        if (user && b.user_id === user.id) return 1
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      })
+
+      setReviews(sortedReviews)
     } catch (error) {
       console.error('Fehler beim Laden der Bewertungen:', error)
-      // Setze leeres Array als Fallback
       setReviews([])
     } finally {
       setLoading(false)
