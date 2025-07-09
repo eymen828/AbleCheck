@@ -11,6 +11,17 @@ import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AccessibilitySettings } from "@/components/accessibility-settings"
@@ -26,7 +37,8 @@ import {
   X,
   AlertCircle,
   ArrowLeft,
-  Clock
+  Clock,
+  Trash2
 } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
@@ -49,7 +61,11 @@ interface ReviewFormData {
 }
 
 interface ExtendedReview extends Review {
-  profiles?: { username: string | null }
+  profiles?: { 
+    username: string | null
+    full_name: string | null
+    avatar_url: string | null
+  }
 }
 
 export default function PlacePage() {
@@ -117,11 +133,12 @@ export default function PlacePage() {
 
   const loadReviews = async () => {
     try {
+      // Versuche erst mit Left Join auf profiles
       const { data, error } = await supabase
         .from('reviews')
         .select(`
           *,
-          profiles!inner(username)
+          profiles(username, full_name, avatar_url)
         `)
         .eq('place_id', placeId)
         .order('created_at', { ascending: false })
@@ -136,9 +153,22 @@ export default function PlacePage() {
           .order('created_at', { ascending: false })
         
         if (fallbackError) throw fallbackError
-        setReviews(fallbackData || [])
+        
+        // Sortiere eigene Bewertung nach oben
+        const sortedReviews = (fallbackData || []).sort((a, b) => {
+          if (user && a.user_id === user.id) return -1
+          if (user && b.user_id === user.id) return 1
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
+        setReviews(sortedReviews)
       } else {
-        setReviews(data || [])
+        // Sortiere eigene Bewertung nach oben
+        const sortedReviews = (data || []).sort((a, b) => {
+          if (user && a.user_id === user.id) return -1
+          if (user && b.user_id === user.id) return 1
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
+        setReviews(sortedReviews)
       }
     } catch (error) {
       console.error('Fehler beim Laden der Bewertungen:', error)
@@ -313,6 +343,33 @@ export default function PlacePage() {
     return ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : 0
   }
 
+  const deleteReview = async (reviewId: string) => {
+    if (!user) return
+    
+    try {
+      setSubmitting(true)
+      
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', reviewId)
+        .eq('user_id', user.id) // Sicherheit: nur eigene Bewertungen löschen
+
+      if (error) throw error
+
+      // Lade Daten neu
+      await loadReviews()
+      await loadPlace()
+      
+      announceAction("Bewertung gelöscht")
+    } catch (error) {
+      console.error('Fehler beim Löschen der Bewertung:', error)
+      alert('Fehler beim Löschen der Bewertung')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -395,19 +452,7 @@ export default function PlacePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Debug Info - nur in Development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
-            <p className="text-sm">
-              <strong>Debug:</strong> {reviews.length} Bewertungen geladen für Ort {placeId}
-            </p>
-            {reviews.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Erste Bewertung: {reviews[0].id} von User {reviews[0].user_id}
-              </p>
-            )}
-          </div>
-        )}
+        
 
         {/* Ort-Übersicht */}
         <div className="grid gap-6 lg:grid-cols-3 mb-8">
@@ -728,36 +773,105 @@ export default function PlacePage() {
             </Card>
           ) : (
             reviews.map((review) => (
-              <Card key={review.id}>
+              <Card key={review.id} className={user && review.user_id === user.id ? "border-blue-200 bg-blue-50/50 dark:bg-blue-950/20" : ""}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                          <span className="font-semibold">{calculateOverallRating(review).toFixed(1)}</span>
-                        </div>
-                        {review.check_in_verified && (
-                          <Badge variant="outline" className="text-green-600 border-green-600">
-                            <Shield className="w-3 h-3 mr-1" />
-                            Check-In
-                          </Badge>
+                    <div className="flex items-start gap-3">
+                      {/* Profilbild */}
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {!review.is_anonymous && review.profiles?.avatar_url ? (
+                          <img 
+                            src={review.profiles.avatar_url} 
+                            alt="Profilbild" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Users className="w-5 h-5 text-muted-foreground" />
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {review.is_anonymous ? 'Anonym' : (review.profiles?.username || 'Unbekannt')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(review.created_at)}
-                      </div>
-                      {review.check_in_verified && (
-                        <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
-                          <Shield className="w-3 h-3" />
-                          Check-In
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                            <span className="font-semibold">{calculateOverallRating(review).toFixed(1)}</span>
+                          </div>
+                          {review.check_in_verified && (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              <Shield className="w-3 h-3 mr-1" />
+                              Check-In
+                            </Badge>
+                          )}
+                          {user && review.user_id === user.id && (
+                            <Badge variant="outline" className="text-blue-600 border-blue-600">
+                              Ihre Bewertung
+                            </Badge>
+                          )}
                         </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">
+                            {review.is_anonymous ? 'Anonym' : (
+                              review.profiles?.full_name || 
+                              review.profiles?.username || 
+                              'Unbekannt'
+                            )}
+                          </p>
+                          {!review.is_anonymous && review.profiles?.username && review.profiles?.full_name && (
+                            <p className="text-xs text-muted-foreground">
+                              @{review.profiles.username}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right flex items-center gap-2">
+                      <div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(review.created_at)}
+                        </div>
+                        {review.check_in_verified && (
+                          <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
+                            <Shield className="w-3 h-3" />
+                            Check-In
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Löschen-Button nur für eigene Bewertungen */}
+                      {user && review.user_id === user.id && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              disabled={submitting}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Bewertung löschen</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Sind Sie sicher, dass Sie diese Bewertung löschen möchten? 
+                                Diese Aktion kann nicht rückgängig gemacht werden.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteReview(review.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Löschen
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </div>
                   </div>
