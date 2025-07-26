@@ -341,7 +341,7 @@ export default function HomePage() {
                   </Button>
                 </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Optionen</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("options")}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem onClick={() => setShowAppInfo(true)}>
@@ -415,7 +415,7 @@ export default function HomePage() {
                 <MapPin className="w-5 h-5 text-blue-600" />
                 <div>
                   <p className="text-2xl font-bold">{places.length}</p>
-                  <p className="text-sm text-muted-foreground">Bewertete Orte</p>
+                  <p className="text-sm text-muted-foreground">{t("ratedPlaces")}</p>
                 </div>
               </div>
             </CardContent>
@@ -429,7 +429,7 @@ export default function HomePage() {
                   <p className="text-2xl font-bold">
                     {places.reduce((sum, place) => sum + place.review_count, 0)}
                   </p>
-                  <p className="text-sm text-muted-foreground">Bewertungen</p>
+                  <p className="text-sm text-muted-foreground">{t("reviewsCount")}</p>
                 </div>
               </div>
             </CardContent>
@@ -443,7 +443,7 @@ export default function HomePage() {
                   <p className="text-2xl font-bold">
                     {places.reduce((sum, place) => sum + place.checkin_review_count, 0)}
                   </p>
-                  <p className="text-sm text-muted-foreground">Check-In Bewertungen</p>
+                  <p className="text-sm text-muted-foreground">{t("checkInReviews")}</p>
                 </div>
               </div>
             </CardContent>
@@ -473,12 +473,12 @@ export default function HomePage() {
         <div className="flex gap-2 mb-6">
           <Button variant="default">
             <MapPin className="w-4 h-4 mr-2" />
-            Alle Orte
+            {t("allPlaces")}
           </Button>
           <Button asChild variant="outline">
             <Link href="/check-in-reviews">
               <Shield className="w-4 h-4 mr-2" />
-              Check-In Bewertungen
+              {t("checkInReviewsLink")}
             </Link>
           </Button>
         </div>
@@ -586,9 +586,9 @@ export default function HomePage() {
           <Card className="mt-8">
             <CardContent className="p-8 text-center">
               <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{t("addReview")}</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("addReviewCta")}</h3>
               <p className="text-muted-foreground mb-4">
-                Melden Sie sich an, um Orte zu bewerten und anderen zu helfen.
+                {t("addReviewCtaDesc")}
               </p>
               <Button onClick={() => setShowAuth(true)}>
                 {t("loginRegister")}

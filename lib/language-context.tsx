@@ -42,6 +42,7 @@ const translations = {
     editProfile: "Profil bearbeiten",
     accessibility: "Barrierefreiheit",
     theme: "Design",
+    options: "Optionen",
     
     // Search and filters
     search: "Suchen",
@@ -62,6 +63,75 @@ const translations = {
     bathroom: "WC",
     tables: "Tische",
     staff: "Personal",
+    
+    // Statistics
+    ratedPlaces: "Bewertete Orte",
+    reviewsCount: "Bewertungen",
+    checkInReviews: "Check-In Bewertungen",
+    
+    // Navigation links
+    allPlaces: "Alle Orte",
+    checkInReviewsLink: "Check-In Bewertungen",
+    
+    // Call to action
+    addReviewCta: "Bewertungen hinzufügen",
+    addReviewCtaDesc: "Melden Sie sich an, um Orte zu bewerten und anderen zu helfen.",
+    
+    // Loading states
+    loading: "Laden...",
+    loadingProfile: "Lade Profil...",
+    saving: "Speichern...",
+    
+    // Form labels and buttons
+    save: "Speichern",
+    cancel: "Abbrechen",
+    close: "Schließen",
+    back: "Zurück",
+    next: "Weiter",
+    submit: "Absenden",
+    
+    // Profile
+    profile: "Profil",
+    username: "Benutzername",
+    fullName: "Vollständiger Name",
+    email: "E-Mail",
+    profilePicture: "Profilbild",
+    chooseImage: "Bild wählen",
+    enterAvatarUrl: "Oder Avatar URL eingeben (optional)",
+    
+    // Error messages
+    error: "Fehler",
+    errorOccurred: "Ein Fehler ist aufgetreten",
+    tryAgain: "Versuchen Sie es erneut",
+    userNotFound: "Benutzer nicht gefunden",
+    loadingError: "Fehler beim Laden",
+    savingError: "Fehler beim Speichern",
+    
+    // Success messages
+    success: "Erfolgreich",
+    profileSaved: "Profil erfolgreich gespeichert!",
+    
+    // Validation
+    required: "Erforderlich",
+    minLength: "Mindestens {0} Zeichen",
+    maxLength: "Maximal {0} Zeichen",
+    
+    // Accessibility
+    blindMode: "Blindenmodus",
+    blindModeActive: "Blindenmodus aktiv",
+    blindModeInactive: "Blindenmodus inaktiv",
+    speechSettings: "Spracheinstellungen",
+    speechRate: "Sprechgeschwindigkeit",
+    speechVolume: "Lautstärke",
+    announceOnHover: "Ansage beim Überfahren",
+    
+    // Common
+    yes: "Ja",
+    no: "Nein",
+    ok: "OK",
+    or: "oder",
+    and: "und",
+    optional: "(optional)",
   },
   tr: {
     // App title and main
@@ -91,6 +161,7 @@ const translations = {
     editProfile: "Profili düzenle",
     accessibility: "Erişilebilirlik",
     theme: "Tema",
+    options: "Seçenekler",
     
     // Search and filters
     search: "Ara",
@@ -111,6 +182,75 @@ const translations = {
     bathroom: "Tuvalet",
     tables: "Masalar",
     staff: "Personel",
+    
+    // Statistics
+    ratedPlaces: "Değerlendirilen Yerler",
+    reviewsCount: "Değerlendirmeler",
+    checkInReviews: "Check-In Değerlendirmeleri",
+    
+    // Navigation links
+    allPlaces: "Tüm Yerler",
+    checkInReviewsLink: "Check-In Değerlendirmeleri",
+    
+    // Call to action
+    addReviewCta: "Değerlendirme ekle",
+    addReviewCtaDesc: "Yerleri değerlendirmek ve başkalarına yardım etmek için giriş yapın.",
+    
+    // Loading states
+    loading: "Yükleniyor...",
+    loadingProfile: "Profil yükleniyor...",
+    saving: "Kaydediyor...",
+    
+    // Form labels and buttons
+    save: "Kaydet",
+    cancel: "İptal",
+    close: "Kapat",
+    back: "Geri",
+    next: "İleri",
+    submit: "Gönder",
+    
+    // Profile
+    profile: "Profil",
+    username: "Kullanıcı adı",
+    fullName: "Tam ad",
+    email: "E-posta",
+    profilePicture: "Profil resmi",
+    chooseImage: "Resim seç",
+    enterAvatarUrl: "Veya avatar URL'si girin (isteğe bağlı)",
+    
+    // Error messages
+    error: "Hata",
+    errorOccurred: "Bir hata oluştu",
+    tryAgain: "Tekrar deneyin",
+    userNotFound: "Kullanıcı bulunamadı",
+    loadingError: "Yükleme hatası",
+    savingError: "Kaydetme hatası",
+    
+    // Success messages
+    success: "Başarılı",
+    profileSaved: "Profil başarıyla kaydedildi!",
+    
+    // Validation
+    required: "Gerekli",
+    minLength: "En az {0} karakter",
+    maxLength: "En fazla {0} karakter",
+    
+    // Accessibility
+    blindMode: "Görme engelli modu",
+    blindModeActive: "Görme engelli modu aktif",
+    blindModeInactive: "Görme engelli modu pasif",
+    speechSettings: "Konuşma ayarları",
+    speechRate: "Konuşma hızı",
+    speechVolume: "Ses seviyesi",
+    announceOnHover: "Fareyle üzerine geldiğinde duyur",
+    
+    // Common
+    yes: "Evet",
+    no: "Hayır",
+    ok: "Tamam",
+    or: "veya",
+    and: "ve",
+    optional: "(isteğe bağlı)",
   },
   en: {
     // App title and main
@@ -140,6 +280,7 @@ const translations = {
     editProfile: "Edit profile",
     accessibility: "Accessibility",
     theme: "Theme",
+    options: "Options",
     
     // Search and filters
     search: "Search",
@@ -160,6 +301,75 @@ const translations = {
     bathroom: "Bathroom",
     tables: "Tables",
     staff: "Staff",
+    
+    // Statistics
+    ratedPlaces: "Rated Places",
+    reviewsCount: "Reviews",
+    checkInReviews: "Check-In Reviews",
+    
+    // Navigation links
+    allPlaces: "All Places",
+    checkInReviewsLink: "Check-In Reviews",
+    
+    // Call to action
+    addReviewCta: "Add reviews",
+    addReviewCtaDesc: "Sign in to rate places and help others.",
+    
+    // Loading states
+    loading: "Loading...",
+    loadingProfile: "Loading profile...",
+    saving: "Saving...",
+    
+    // Form labels and buttons
+    save: "Save",
+    cancel: "Cancel",
+    close: "Close",
+    back: "Back",
+    next: "Next",
+    submit: "Submit",
+    
+    // Profile
+    profile: "Profile",
+    username: "Username",
+    fullName: "Full name",
+    email: "Email",
+    profilePicture: "Profile picture",
+    chooseImage: "Choose image",
+    enterAvatarUrl: "Or enter avatar URL (optional)",
+    
+    // Error messages
+    error: "Error",
+    errorOccurred: "An error occurred",
+    tryAgain: "Try again",
+    userNotFound: "User not found",
+    loadingError: "Loading error",
+    savingError: "Saving error",
+    
+    // Success messages
+    success: "Success",
+    profileSaved: "Profile saved successfully!",
+    
+    // Validation
+    required: "Required",
+    minLength: "At least {0} characters",
+    maxLength: "Maximum {0} characters",
+    
+    // Accessibility
+    blindMode: "Blind mode",
+    blindModeActive: "Blind mode active",
+    blindModeInactive: "Blind mode inactive",
+    speechSettings: "Speech settings",
+    speechRate: "Speech rate",
+    speechVolume: "Volume",
+    announceOnHover: "Announce on hover",
+    
+    // Common
+    yes: "Yes",
+    no: "No",
+    ok: "OK",
+    or: "or",
+    and: "and",
+    optional: "(optional)",
   },
 }
 
