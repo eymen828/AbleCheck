@@ -14,6 +14,7 @@ import { CheckInHelpDialog } from "@/components/check-in-help-dialog"
 import { AppInfoDialog } from "@/components/app-info-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AccessibilitySettings } from "@/components/accessibility-settings"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { Auth } from "@/components/auth"
 import { 
   CheckCircle, 
@@ -33,6 +34,7 @@ import { supabase } from "@/lib/supabase"
 import type { PlaceRating } from "@/lib/supabase"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useGeolocation } from "@/hooks/use-geolocation"
+import { useLanguage } from "@/hooks/use-language"
 import { PlaceSelector } from "@/components/place-selector"
 import { Onboarding } from "@/components/onboarding"
 import { ProfileSettings } from "@/components/profile-settings"
@@ -66,6 +68,7 @@ export default function HomePage() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('ablecheck-onboarding-completed', false)
 
   const { position, getCurrentPosition } = useGeolocation()
+  const { t } = useLanguage()
 
   const [filters, setFilters] = useState<SearchFiltersType>({
     minRating: 0,
@@ -319,44 +322,44 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <CheckCircle className="w-8 h-8 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold">AbleCheck</h1>
-                <p className="text-sm text-muted-foreground">Barrierefreiheit bewerten</p>
+                <h1 className="text-2xl font-bold">{t("appTitle")}</h1>
+                <p className="text-sm text-muted-foreground">{t("appSubtitle")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {user && (
                 <Button onClick={() => setShowReviewTypeSelector(true)} size="sm" className="gap-2">
                   <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Bewertung</span>
+                  <span className="hidden sm:inline">{t("review")}</span>
                 </Button>
               )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
-                    Einstellungen
+                    {t("settings")}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Optionen</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Optionen</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={() => setShowAppInfo(true)}>
-                    <Info className="mr-2 h-4 w-4" />
-                    App-Infos
-                  </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowAppInfo(true)}>
+                      <Info className="mr-2 h-4 w-4" />
+                      {t("appInfo")}
+                    </DropdownMenuItem>
 
-                  <DropdownMenuItem onClick={() => setShowCheckInHelp(true)}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Check-In Hilfe
-                  </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowCheckInHelp(true)}>
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      {t("checkInHelp")}
+                    </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
+                    <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Onboarding wiederholen
-                  </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      {t("repeatOnboarding")}
+                    </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
 
@@ -366,6 +369,10 @@ export default function HomePage() {
 
                   <DropdownMenuItem>
                     <ThemeToggle />
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem>
+                    <LanguageSwitcher />
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
@@ -379,17 +386,17 @@ export default function HomePage() {
                     </>
                   )}
 
-                  {user ? (
-                    <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
-                      <User className="mr-2 h-4 w-4" />
-                      Abmelden
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem onClick={() => setShowAuth(true)}>
-                      <User className="mr-2 h-4 w-4" />
-                      Anmelden
-                    </DropdownMenuItem>
-                  )}
+                                      {user ? (
+                      <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
+                        <User className="mr-2 h-4 w-4" />
+                        {t("logout")}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => setShowAuth(true)}>
+                        <User className="mr-2 h-4 w-4" />
+                        {t("login")}
+                      </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -448,7 +455,7 @@ export default function HomePage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Nach Orten suchen..."
+              placeholder={t("searchPlaces")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -496,14 +503,14 @@ export default function HomePage() {
           <Card>
             <CardContent className="p-8 text-center">
               <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Keine Orte gefunden</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("noPlaces")}</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm ? 'Versuchen Sie andere Suchbegriffe.' : 'Noch keine Orte bewertet.'}
+                {searchTerm ? t("noPlacesDesc") : t("noPlacesYet")}
               </p>
               {user && (
                 <Button onClick={handleAddReview}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Erste Bewertung hinzufügen
+                  {t("firstReview")}
                 </Button>
               )}
             </CardContent>
@@ -520,7 +527,7 @@ export default function HomePage() {
                     {place.checkin_review_count > 0 && (
                       <Badge variant="outline" className="ml-2">
                         <Shield className="w-3 h-3 mr-1" />
-                        Verifiziert
+                        {t("verified")}
                       </Badge>
                     )}
                   </CardTitle>
@@ -542,18 +549,18 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Users className="w-3 h-3" />
-                      {place.review_count} Bewertungen
+                      {place.review_count} {t("reviews")}
                     </div>
                   </div>
 
                   {place.review_count > 0 && (
                     <div className="grid grid-cols-5 gap-2 mb-4 text-xs">
                       {[
-                        { label: 'Rollstuhl', value: place.avg_wheelchair_access },
-                        { label: 'Eingang', value: place.avg_entrance_access },
-                        { label: 'WC', value: place.avg_bathroom_access },
-                        { label: 'Tische', value: place.avg_table_height },
-                        { label: 'Personal', value: place.avg_staff_helpfulness },
+                        { label: t('wheelchair'), value: place.avg_wheelchair_access },
+                        { label: t('entrance'), value: place.avg_entrance_access },
+                        { label: t('bathroom'), value: place.avg_bathroom_access },
+                        { label: t('tables'), value: place.avg_table_height },
+                        { label: t('staff'), value: place.avg_staff_helpfulness },
                       ].map((item, index) => (
                         <div key={index} className="text-center">
                           <p className="text-muted-foreground">{item.label}</p>
@@ -565,7 +572,7 @@ export default function HomePage() {
 
                   <Button asChild variant="outline" size="sm" className="w-full">
                     <Link href={`/place/${place.id}`}>
-                      Details ansehen
+                      {t("details")}
                     </Link>
                   </Button>
                 </CardContent>
@@ -579,12 +586,12 @@ export default function HomePage() {
           <Card className="mt-8">
             <CardContent className="p-8 text-center">
               <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Bewertungen hinzufügen</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("addReview")}</h3>
               <p className="text-muted-foreground mb-4">
                 Melden Sie sich an, um Orte zu bewerten und anderen zu helfen.
               </p>
               <Button onClick={() => setShowAuth(true)}>
-                Anmelden / Registrieren
+                {t("loginRegister")}
               </Button>
             </CardContent>
           </Card>

@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { LanguageProvider } from "@/hooks/use-language"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -79,9 +80,11 @@ export default function RootLayout({
         <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
       </head>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="system" storageKey="ablecheck-ui-theme">
-          {children}
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider defaultTheme="system" storageKey="ablecheck-ui-theme">
+            {children}
+          </ThemeProvider>
+        </LanguageProvider>
       </body>
     </html>
   )
