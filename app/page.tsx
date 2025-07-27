@@ -15,6 +15,7 @@ import { AppInfoDialog } from "@/components/app-info-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AccessibilitySettings } from "@/components/accessibility-settings"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { PushNotificationSettings } from "@/components/push-notification-settings"
 import { Auth } from "@/components/auth"
 import { 
   CheckCircle, 
@@ -373,6 +374,10 @@ export default function HomePage() {
 
                   <DropdownMenuItem>
                     <LanguageSwitcher />
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem>
+                    <PushNotificationSettings />
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
