@@ -450,7 +450,7 @@ export function JoyMode() {
           </CardContent>
         </Card>
       )}
-      </div>
+        </motion.div>
     </>
   )
 }
