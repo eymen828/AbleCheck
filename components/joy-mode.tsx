@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { JoyModeNotification, useJoyModeNotifications } from "@/components/joy-mode-notification"
+import { motion } from "framer-motion"
 
 interface Achievement {
   id: string
@@ -145,33 +146,62 @@ export function JoyMode() {
 
   if (!isJoyModeActive) {
     return (
-      <Card className="mb-6 border-2 border-dashed border-muted-foreground/20">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-2">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
-          <CardTitle className="text-xl">Joy Mode aktivieren</CardTitle>
-          <CardDescription>
-            Verwandle deine Bewertungen in ein spielerisches Erlebnis! 
-            Sammle Punkte, schalte Achievements frei und steige im Level auf.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Switch
-              id="joy-mode"
-              checked={isJoyModeActive}
-              onCheckedChange={setIsJoyModeActive}
-            />
-            <Label htmlFor="joy-mode" className="font-medium">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, type: "spring" }}
+      >
+        <Card className="mb-6 border-2 border-dashed border-purple-300/30 bg-gradient-to-br from-purple-50/50 to-pink-50/50">
+          <CardHeader className="text-center">
+            <motion.div 
+              className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4"
+              animate={{ 
+                rotate: [0, 10, -10, 0],
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ 
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <Sparkles className="h-8 w-8 text-white" />
+            </motion.div>
+            <CardTitle className="text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               Joy Mode aktivieren
-            </Label>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Hilf anderen und hab Spaß dabei! 🎮✨
-          </p>
-        </CardContent>
-      </Card>
+            </CardTitle>
+            <CardDescription className="text-purple-600/70">
+              Verwandle deine Bewertungen in ein spielerisches Erlebnis! ✨
+              <br />
+              Sammle Punkte, schalte Achievements frei und steige im Level auf! 🎮
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <motion.div 
+              className="flex items-center justify-center space-x-3 mb-6"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              <Switch
+                id="joy-mode"
+                checked={isJoyModeActive}
+                onCheckedChange={setIsJoyModeActive}
+                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-500 data-[state=checked]:to-pink-500"
+              />
+              <Label htmlFor="joy-mode" className="font-semibold text-purple-700">
+                Joy Mode aktivieren
+              </Label>
+            </motion.div>
+            <motion.p 
+              className="text-sm text-purple-600/60 font-medium"
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              Hilf anderen und hab Spaß dabei! 🌟🎉
+            </motion.p>
+          </CardContent>
+        </Card>
+      </motion.div>
     )
   }
 
@@ -180,27 +210,53 @@ export function JoyMode() {
       <JoyModeNotification notifications={notifications} onDismiss={dismissNotification} />
       <ConfettiComponent />
       
-      <div className="space-y-6">
-        {/* Header with Toggle */}
-      <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
+              <motion.div 
+          className="space-y-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Header with Toggle */}
+          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-300/50 shadow-lg shadow-purple-200/30">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <motion.div 
+                    className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center"
+                    animate={{ 
+                      rotate: [0, 5, -5, 0],
+                      scale: [1, 1.05, 1]
+                    }}
+                    transition={{ 
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Sparkles className="h-6 w-6 text-white" />
+                  </motion.div>
+                  <div>
+                    <CardTitle className="text-xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      Joy Mode
+                    </CardTitle>
+                    <CardDescription className="text-purple-600/70 font-medium">
+                      Gamification für Barrierefreiheit ✨
+                    </CardDescription>
+                  </div>
+                </div>
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Switch
+                    checked={isJoyModeActive}
+                    onCheckedChange={setIsJoyModeActive}
+                    className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-500 data-[state=checked]:to-pink-500"
+                  />
+                </motion.div>
               </div>
-              <div>
-                <CardTitle className="text-lg">Joy Mode</CardTitle>
-                <CardDescription>Gamification für Barrierefreiheit</CardDescription>
-              </div>
-            </div>
-            <Switch
-              checked={isJoyModeActive}
-              onCheckedChange={setIsJoyModeActive}
-            />
-          </div>
-        </CardHeader>
-      </Card>
+            </CardHeader>
+          </Card>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

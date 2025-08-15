@@ -47,6 +47,16 @@ import { moderateContent, shouldBlockContent, getContentWarning } from "@/lib/co
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
 import { useJoyMode } from "@/components/joy-mode"
 import { JoyModeNotification, useJoyModeNotifications } from "@/components/joy-mode-notification"
+import { 
+  AnimatedCard, 
+  AnimatedButton, 
+  AnimatedBadge,
+  FloatingIcon,
+  SparkleBackground,
+  GradientText,
+  CounterAnimation
+} from "@/components/animated-ui"
+import { FloatingElements, BounceLoader } from "@/components/animated-loader"
 import { upload } from "@vercel/blob/client"
 
 interface ReviewFormData {
@@ -439,17 +449,23 @@ export default function PlacePage() {
       <JoyModeNotification notifications={notifications} onDismiss={dismissNotification} />
       <ConfettiComponent />
       
-      <div className="min-h-screen bg-background">
-        <header className="border-b bg-card">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <FloatingElements>
+          <SparkleBackground>
+            <header className="border-b bg-gradient-to-r from-white/80 to-purple-50/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Zurück
-                </Link>
-              </Button>
+                            <div className="flex items-center gap-4">
+                  <AnimatedButton 
+                    variant="ghost" 
+                    size="sm"
+                    className="hover:bg-purple-100"
+                  >
+                    <Link href="/" className="flex items-center gap-2">
+                      <ArrowLeft className="w-4 h-4" />
+                      Zurück
+                    </Link>
+                  </AnimatedButton>
               <div>
                 <h1 className="text-2xl font-bold">{place.name}</h1>
                 {place.address && (
@@ -988,8 +1004,10 @@ export default function PlacePage() {
               </Card>
             ))
           )}
-        </div>
-      </main>
+          </div>
+        </main>
+          </SparkleBackground>
+        </FloatingElements>
       </div>
     </>
   )
