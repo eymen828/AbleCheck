@@ -45,6 +45,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import dynamic from "next/dynamic"
+const MapView = dynamic(() => import("@/components/map-view").then(m => m.MapView), { ssr: false, loading: () => <div className="w-full h-[50vh] rounded-lg overflow-hidden border bg-muted" /> })
 
 export default function HomePage() {
   const [places, setPlaces] = useState<PlaceRating[]>([])
@@ -331,67 +333,9 @@ export default function HomePage() {
                 </Button>
               )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Einstellungen
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Optionen</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onClick={() => setShowAppInfo(true)}>
-                    <Info className="mr-2 h-4 w-4" />
-                    App-Infos
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem onClick={() => setShowCheckInHelp(true)}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Check-In Hilfe
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Onboarding wiederholen
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem>
-                    <AccessibilitySettings />
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem>
-                    <ThemeToggle />
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  {user && (
-                    <>
-                      <div className="px-2 py-1.5">
-                        <ProfileSettings user={user} onProfileUpdate={checkUser} />
-                      </div>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-
-                  {user ? (
-                    <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
-                      <User className="mr-2 h-4 w-4" />
-                      Abmelden
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem onClick={() => setShowAuth(true)}>
-                      <User className="mr-2 h-4 w-4" />
-                      Anmelden
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/settings">Einstellungen</Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -399,6 +343,7 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-8">
 
+        <MapView />
 
         {/* Statistiken */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
