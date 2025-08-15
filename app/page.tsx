@@ -37,6 +37,7 @@ import { PlaceSelector } from "@/components/place-selector"
 import { Onboarding } from "@/components/onboarding"
 import { ProfileSettings } from "@/components/profile-settings"
 import { UserReviews } from "@/components/user-reviews"
+import { JoyMode } from "@/components/joy-mode"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -442,6 +443,9 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Joy Mode */}
+        <JoyMode />
 
         {/* Suche und Filter */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">

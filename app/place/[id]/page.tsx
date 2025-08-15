@@ -45,6 +45,8 @@ import { supabase } from "@/lib/supabase"
 import type { Place, Review, PlaceRating } from "@/lib/supabase"
 import { moderateContent, shouldBlockContent, getContentWarning } from "@/lib/content-filter"
 import { useAccessibilityMode } from "@/hooks/use-accessibility-mode"
+import { useJoyMode } from "@/components/joy-mode"
+import { JoyModeNotification, useJoyModeNotifications } from "@/components/joy-mode-notification"
 import { upload } from "@vercel/blob/client"
 
 interface ReviewFormData {
@@ -84,6 +86,12 @@ export default function PlacePage() {
   const [uploadingImages, setUploadingImages] = useState(false)
   
   const { announceAction, announceFormField } = useAccessibilityMode()
+  const { addPoints } = useJoyMode()
+  const {
+    notifications,
+    dismissNotification,
+    ConfettiComponent
+  } = useJoyModeNotifications()
   
   const [formData, setFormData] = useState<ReviewFormData>({
     wheelchair_access: 0,
@@ -290,6 +298,16 @@ export default function PlacePage() {
       }
 
       announceAction(formData.check_in_verified ? "Check-In Bewertung erfolgreich gespeichert" : "Bewertung erfolgreich gespeichert")
+      
+      // Add Joy Mode points only for new reviews
+      if (!existingReview) {
+        if (formData.check_in_verified) {
+          addPoints(50, 'checkin')
+        } else {
+          addPoints(20, 'review')
+        }
+      }
+      
       setShowReviewForm(false)
       loadReviews()
       loadPlace()
@@ -417,8 +435,12 @@ export default function PlacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
+    <>
+      <JoyModeNotification notifications={notifications} onDismiss={dismissNotification} />
+      <ConfettiComponent />
+      
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -968,6 +990,7 @@ export default function PlacePage() {
           )}
         </div>
       </main>
-    </div>
+      </div>
+    </>
   )
 }
