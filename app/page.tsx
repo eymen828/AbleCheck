@@ -39,17 +39,16 @@ import { ProfileSettings } from "@/components/profile-settings"
 import { UserReviews } from "@/components/user-reviews"
 import { JoyMode } from "@/components/joy-mode"
 import { 
-  AnimatedCard, 
-  AnimatedButton, 
-  AnimatedBadge,
-  FloatingIcon,
-  SparkleBackground,
-  GradientText,
-  RainbowBorder,
-  PulsingDot,
-  CounterAnimation
-} from "@/components/animated-ui"
-import { PlayfulCardLoader, FloatingElements } from "@/components/animated-loader"
+  PixelCard,
+  PixelButton,
+  PixelBadge,
+  PixelSearchBar,
+  GoogleWaveLoader,
+  MaterialRipple,
+  FloatingActionButton,
+  pixelColors
+} from "@/components/pixel-ui"
+import { InteractiveMap } from "@/components/interactive-map"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -324,50 +323,55 @@ export default function HomePage() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-      <FloatingElements>
-        <SparkleBackground>
-        <header className="border-b bg-gradient-to-r from-white/80 to-purple-50/80 backdrop-blur-sm">
-          <div className="container mx-auto px-4 py-4">
+    return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="relative">
+        {/* Google Pixel style background pattern */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-purple-500/10" />
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%), 
+                             radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+                             radial-gradient(circle at 40% 80%, rgba(119, 198, 255, 0.1) 0%, transparent 50%)`
+          }} />
+        </div>
+
+        <header className="relative z-10 bg-white/80 backdrop-blur-xl border-b border-gray-200/50">
+          <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <RainbowBorder>
-                  <FloatingIcon delay={0}>
-                    <CheckCircle className="w-10 h-10 text-purple-600 p-2" />
-                  </FloatingIcon>
-                </RainbowBorder>
+              <div className="flex items-center gap-4">
+                <MaterialRipple className="rounded-full">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                    <CheckCircle className="w-7 h-7 text-white" />
+                  </div>
+                </MaterialRipple>
                 <div>
-                  <GradientText className="text-3xl font-bold">
-                    AbleCheck
-                  </GradientText>
-                  <p className="text-sm text-purple-600/70">
-                    Barrierefreiheit spielerisch bewerten ✨
-                  </p>
+                  <h1 className="text-2xl font-bold text-gray-900">AbleCheck</h1>
+                  <p className="text-sm text-gray-600">Barrierefreiheit bewerten</p>
                 </div>
               </div>
-            <div className="flex items-center gap-3">
-              {user && (
-                <AnimatedButton 
-                  onClick={() => setShowReviewTypeSelector(true)} 
-                  size="sm" 
-                  gradient="from-green-500 to-blue-500"
-                  icon={<Plus className="w-4 h-4" />}
-                >
-                  <span className="hidden sm:inline">Bewertung</span>
-                </AnimatedButton>
-              )}
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <AnimatedButton 
-                    variant="outline" 
-                    size="sm"
-                    className="border-purple-200 hover:border-purple-400"
+              <div className="flex items-center gap-3">
+                {user && (
+                  <PixelButton 
+                    onClick={() => setShowReviewTypeSelector(true)} 
+                    size="medium" 
+                    color="primary"
+                    icon={<Plus className="w-4 h-4" />}
                   >
-                    Einstellungen
-                  </AnimatedButton>
-                </DropdownMenuTrigger>
+                    <span className="hidden sm:inline">Bewertung</span>
+                  </PixelButton>
+                )}
+
+                                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <PixelButton 
+                        variant="outlined" 
+                        size="medium"
+                        color="secondary"
+                      >
+                        Einstellungen
+                      </PixelButton>
+                    </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Optionen</DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -428,186 +432,169 @@ export default function HomePage() {
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
-          {/* Statistiken */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <AnimatedCard 
-              delay={0.1}
-              gradient="bg-gradient-to-br from-blue-50 to-cyan-100"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <FloatingIcon delay={0.5}>
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                      <MapPin className="w-6 h-6 text-white" />
+          <main className="relative z-10 container mx-auto px-6 py-8">
+            {/* Statistiken im Google Pixel Style */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <PixelCard variant="elevated" color="primary">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                      <MapPin className="w-7 h-7 text-white" />
                     </div>
-                  </FloatingIcon>
-                  <div>
-                    <CounterAnimation 
-                      value={places.length}
-                      className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent"
-                    />
-                    <p className="text-sm text-blue-600/70 font-medium">Bewertete Orte</p>
-                    <PulsingDot color="bg-blue-500" className="mt-1" />
-                  </div>
-                </div>
-              </CardContent>
-            </AnimatedCard>
-
-            <AnimatedCard 
-              delay={0.2}
-              gradient="bg-gradient-to-br from-green-50 to-emerald-100"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <FloatingIcon delay={0.7}>
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                      <Users className="w-6 h-6 text-white" />
+                    <div>
+                      <div className="text-3xl font-bold text-gray-900">{places.length}</div>
+                      <p className="text-sm text-gray-600 font-medium">Bewertete Orte</p>
+                      <div className="mt-2">
+                        <PixelBadge color="primary" size="small">Aktiv</PixelBadge>
+                      </div>
                     </div>
-                  </FloatingIcon>
-                  <div>
-                    <CounterAnimation 
-                      value={places.reduce((sum, place) => sum + place.review_count, 0)}
-                      className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent"
-                    />
-                    <p className="text-sm text-green-600/70 font-medium">Bewertungen</p>
-                    <PulsingDot color="bg-green-500" className="mt-1" />
                   </div>
-                </div>
-              </CardContent>
-            </AnimatedCard>
+                </CardContent>
+              </PixelCard>
 
-            <AnimatedCard 
-              delay={0.3}
-              gradient="bg-gradient-to-br from-purple-50 to-pink-100"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <FloatingIcon delay={0.9}>
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                      <Shield className="w-6 h-6 text-white" />
+              <PixelCard variant="elevated" color="success">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-green-600 rounded-full flex items-center justify-center shadow-lg">
+                      <Users className="w-7 h-7 text-white" />
                     </div>
-                  </FloatingIcon>
-                  <div>
-                    <CounterAnimation 
-                      value={places.reduce((sum, place) => sum + place.checkin_review_count, 0)}
-                      className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent"
-                    />
-                    <p className="text-sm text-purple-600/70 font-medium">Check-In Bewertungen</p>
-                    <PulsingDot color="bg-purple-500" className="mt-1" />
+                    <div>
+                      <div className="text-3xl font-bold text-gray-900">
+                        {places.reduce((sum, place) => sum + place.review_count, 0)}
+                      </div>
+                      <p className="text-sm text-gray-600 font-medium">Bewertungen</p>
+                      <div className="mt-2">
+                        <PixelBadge color="success" size="small">Community</PixelBadge>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </AnimatedCard>
-          </div>
+                </CardContent>
+              </PixelCard>
 
-        {/* Joy Mode */}
-        <JoyMode />
+              <PixelCard variant="elevated" color="warning">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-orange-600 rounded-full flex items-center justify-center shadow-lg">
+                      <Shield className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-3xl font-bold text-gray-900">
+                        {places.reduce((sum, place) => sum + place.checkin_review_count, 0)}
+                      </div>
+                      <p className="text-sm text-gray-600 font-medium">Check-In Bewertungen</p>
+                      <div className="mt-2">
+                        <PixelBadge color="warning" size="small">Verifiziert</PixelBadge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </PixelCard>
+            </div>
 
-          {/* Suche und Filter */}
-          <AnimatedCard delay={0.4} className="mb-6" gradient="bg-gradient-to-r from-white to-blue-50/50">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  <FloatingIcon delay={1.2}>
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-purple-500" />
-                  </FloatingIcon>
-                  <Input
-                    placeholder="Nach Orten suchen... 🔍"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-purple-200 focus:border-purple-400 focus:ring-purple-300"
+                    {/* Joy Mode */}
+            <JoyMode />
+
+            {/* Interactive Map */}
+            <div className="mb-8">
+              <InteractiveMap />
+            </div>
+
+            {/* Suche und Filter */}
+            <PixelCard variant="elevated" className="mb-6">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <PixelSearchBar
+                      value={searchTerm}
+                      onChange={setSearchTerm}
+                      placeholder="Nach Orten suchen... 🔍"
+                    />
+                  </div>
+                  <SearchFilters
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    totalResults={places.length}
+                    filteredResults={filteredPlaces.length}
                   />
                 </div>
-                <SearchFilters
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  totalResults={places.length}
-                  filteredResults={filteredPlaces.length}
-                />
-              </div>
-            </CardContent>
-          </AnimatedCard>
-
-          {/* Navigation */}
-          <div className="flex gap-3 mb-6">
-            <AnimatedButton 
-              variant="default"
-              gradient="from-purple-600 to-blue-600"
-              icon={<MapPin className="w-4 h-4" />}
-            >
-              Alle Orte
-            </AnimatedButton>
-            <AnimatedButton 
-              variant="outline"
-              className="border-purple-200 hover:border-purple-400"
-            >
-              <Link href="/check-in-reviews" className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Check-In Bewertungen
-              </Link>
-            </AnimatedButton>
-          </div>
-
-          {/* Orte Liste */}
-            {loading ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {[...Array(6)].map((_, i) => (
-                  <PlayfulCardLoader key={i} delay={i * 0.1} />
-                ))}
-              </div>
-          ) : sortedPlaces.length === 0 ? (
-            <AnimatedCard gradient="bg-gradient-to-br from-orange-50 to-yellow-100">
-              <CardContent className="p-8 text-center">
-                <FloatingIcon>
-                  <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <MapPin className="w-8 h-8 text-white" />
-                  </div>
-                </FloatingIcon>
-                <GradientText className="text-xl font-bold mb-2" gradient="from-orange-600 to-yellow-600">
-                  Keine Orte gefunden
-                </GradientText>
-                <p className="text-orange-600/70 mb-4">
-                  {searchTerm ? 'Versuche andere Suchbegriffe. 🔍' : 'Noch keine Orte bewertet. ✨'}
-                </p>
-                {user && (
-                  <AnimatedButton 
-                    onClick={handleAddReview}
-                    gradient="from-orange-500 to-yellow-500"
-                    icon={<Plus className="w-4 h-4" />}
-                  >
-                    Erste Bewertung hinzufügen
-                  </AnimatedButton>
-                )}
               </CardContent>
-            </AnimatedCard>
+            </PixelCard>
+
+            {/* Navigation */}
+            <div className="flex gap-3 mb-6">
+              <PixelButton 
+                variant="filled"
+                color="primary"
+                icon={<MapPin className="w-4 h-4" />}
+              >
+                Alle Orte
+              </PixelButton>
+              <PixelButton 
+                variant="outlined"
+                color="secondary"
+              >
+                <Link href="/check-in-reviews" className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Check-In Bewertungen
+                </Link>
+              </PixelButton>
+            </div>
+
+                        {/* Orte Liste */}
+              {loading ? (
+                <PixelCard variant="elevated" className="p-8 text-center">
+                  <div className="space-y-4">
+                    <GoogleWaveLoader className="mx-auto" />
+                    <p className="text-gray-600">Lade Orte...</p>
+                  </div>
+                </PixelCard>
+                        ) : sortedPlaces.length === 0 ? (
+                <PixelCard variant="elevated" color="warning">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <MapPin className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      Keine Orte gefunden
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      {searchTerm ? 'Versuche andere Suchbegriffe. 🔍' : 'Noch keine Orte bewertet. ✨'}
+                    </p>
+                    {user && (
+                      <PixelButton 
+                        onClick={handleAddReview}
+                        color="warning"
+                        icon={<Plus className="w-4 h-4" />}
+                      >
+                        Erste Bewertung hinzufügen
+                      </PixelButton>
+                    )}
+                  </CardContent>
+                </PixelCard>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {sortedPlaces.map((place, index) => (
-                <AnimatedCard 
-                  key={place.id} 
-                  delay={index * 0.1}
-                  gradient={`bg-gradient-to-br ${
-                    ['from-rose-50 to-pink-100', 'from-blue-50 to-indigo-100', 'from-green-50 to-emerald-100', 
-                     'from-purple-50 to-violet-100', 'from-yellow-50 to-orange-100', 'from-cyan-50 to-blue-100'][index % 6]
-                  }`}
-                >
+                {sortedPlaces.map((place, index) => (
+                  <PixelCard 
+                    key={place.id} 
+                    variant="elevated"
+                    color={['primary', 'secondary', 'success', 'warning', 'tertiary', 'primary'][index % 5] as any}
+                  >
                 <CardHeader>
                   <CardTitle className="flex items-start justify-between">
                     <Link href={`/place/${place.id}`} className="hover:underline flex-1">
                       {place.name}
                     </Link>
-                      {place.checkin_review_count > 0 && (
-                        <AnimatedBadge 
-                          variant="default"
-                          gradient="from-green-500 to-emerald-500"
-                          className="ml-2"
-                          pulse={true}
-                        >
-                          <Shield className="w-3 h-3 mr-1" />
-                          Verifiziert ✓
-                        </AnimatedBadge>
-                      )}
+                        {place.checkin_review_count > 0 && (
+                          <PixelBadge 
+                            variant="filled"
+                            color="success"
+                            size="small"
+                            className="ml-2"
+                          >
+                            <Shield className="w-3 h-3 mr-1" />
+                            Verifiziert ✓
+                          </PixelBadge>
+                        )}
                   </CardTitle>
                   {place.address && (
                     <CardDescription className="flex items-center gap-1">
@@ -618,25 +605,20 @@ export default function HomePage() {
                 </CardHeader>
 
                 <CardContent>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <FloatingIcon delay={index * 0.1 + 1}>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
                           <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                        </FloatingIcon>
-                        <CounterAnimation 
-                          value={Math.round((place.avg_overall_rating || 0) * 10) / 10}
-                          className="text-lg font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent"
-                        />
+                          <span className="text-lg font-bold text-gray-900">
+                            {place.avg_overall_rating?.toFixed(1) || '0.0'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-600">
+                            {place.review_count} Bewertungen
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <FloatingIcon delay={index * 0.1 + 1.2}>
-                          <Users className="w-4 h-4 text-purple-500" />
-                        </FloatingIcon>
-                        <span className="text-sm font-medium text-purple-600">
-                          {place.review_count} Bewertungen
-                        </span>
-                      </div>
-                    </div>
 
                   {place.review_count > 0 && (
                     <div className="grid grid-cols-5 gap-2 mb-4 text-xs">
@@ -646,62 +628,60 @@ export default function HomePage() {
                         { label: 'WC', value: place.avg_bathroom_access },
                         { label: 'Tische', value: place.avg_table_height },
                         { label: 'Personal', value: place.avg_staff_helpfulness },
-                        ].map((item, i) => (
-                          <div key={i} className="text-center">
-                            <p className="text-xs text-purple-600/60 font-medium">{item.label}</p>
-                            <CounterAnimation 
-                              value={Math.round((item.value || 0) * 10) / 10}
-                              className="text-sm font-bold text-purple-700"
-                            />
-                          </div>
-                        ))}
+                          ].map((item, i) => (
+                            <div key={i} className="text-center">
+                              <p className="text-xs text-gray-600 font-medium">{item.label}</p>
+                              <p className="text-sm font-bold text-gray-900">
+                                {item.value?.toFixed(1) || 'N/A'}
+                              </p>
+                            </div>
+                          ))}
                     </div>
                   )}
 
-                    <AnimatedButton 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full border-purple-200 hover:border-purple-400"
-                    >
-                      <Link href={`/place/${place.id}`} className="flex items-center justify-center gap-2">
-                        Details ansehen ✨
-                      </Link>
-                    </AnimatedButton>
-                  </CardContent>
-                </AnimatedCard>
+                      <PixelButton 
+                        variant="outlined" 
+                        size="medium" 
+                        color="primary"
+                        className="w-full"
+                      >
+                        <Link href={`/place/${place.id}`} className="flex items-center justify-center gap-2">
+                          Details ansehen
+                        </Link>
+                      </PixelButton>
+                    </CardContent>
+                  </PixelCard>
               ))}
             </div>
         )}
 
-          {/* Call to Action für nicht angemeldete Benutzer */}
-          {!user && (
-            <AnimatedCard 
-              className="mt-8" 
-              gradient="bg-gradient-to-br from-indigo-50 to-purple-100"
-              delay={0.5}
-            >
-              <CardContent className="p-8 text-center">
-                <FloatingIcon>
-                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            {/* Call to Action für nicht angemeldete Benutzer */}
+            {!user && (
+              <PixelCard 
+                className="mt-8" 
+                variant="elevated"
+                color="primary"
+              >
+                <CardContent className="p-8 text-center">
+                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <CheckCircle className="w-8 h-8 text-white" />
                   </div>
-                </FloatingIcon>
-                <GradientText className="text-2xl font-bold mb-2" gradient="from-indigo-600 to-purple-600">
-                  Bewertungen hinzufügen
-                </GradientText>
-                <p className="text-indigo-600/70 mb-6">
-                  Melde dich an, um Orte zu bewerten und anderen zu helfen! 🌟
-                </p>
-                <AnimatedButton 
-                  onClick={() => setShowAuth(true)}
-                  gradient="from-indigo-500 to-purple-500"
-                  size="lg"
-                >
-                  Anmelden / Registrieren 🚀
-                </AnimatedButton>
-              </CardContent>
-            </AnimatedCard>
-          )}
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    Bewertungen hinzufügen
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Melde dich an, um Orte zu bewerten und anderen zu helfen! 🌟
+                  </p>
+                  <PixelButton 
+                    onClick={() => setShowAuth(true)}
+                    color="primary"
+                    size="large"
+                  >
+                    Anmelden / Registrieren
+                  </PixelButton>
+                </CardContent>
+              </PixelCard>
+            )}
       </main>
 
       {/* Check-In Help Dialog */}
@@ -716,12 +696,21 @@ export default function HomePage() {
       />
 
       {/* App Info Dialog */}
-        <AppInfoDialog 
-          open={showAppInfo} 
-          onOpenChange={setShowAppInfo} 
-        />
-        </SparkleBackground>
-      </FloatingElements>
-    </div>
+          <AppInfoDialog 
+            open={showAppInfo} 
+            onOpenChange={setShowAppInfo} 
+          />
+
+          {/* Floating Action Button */}
+          {user && (
+            <FloatingActionButton 
+              onClick={() => setShowReviewTypeSelector(true)}
+              color="primary"
+            >
+              <Plus className="w-6 h-6" />
+            </FloatingActionButton>
+          )}
+        </div>
+      </div>
   )
 }
