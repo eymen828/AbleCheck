@@ -312,262 +312,196 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold">AbleCheck</h1>
-                <p className="text-sm text-muted-foreground">Barrierefreiheit bewerten</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {user && (
-                <Button onClick={() => setShowReviewTypeSelector(true)} size="sm" className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Bewertung</span>
+    <div className="min-h-screen bg-background font-sans">
+      <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-10 h-10 text-primary" />
+            <h1 className="text-3xl font-bold text-primary tracking-tight">AbleCheck</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            {user && (
+              <Button onClick={() => setShowReviewTypeSelector(true)} className="rounded-full gap-2 shadow-lg hover:shadow-xl transition-shadow">
+                <Plus className="w-5 h-5" />
+                <span>Bewertung</span>
+              </Button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full w-12 h-12">
+                  <User className="w-6 h-6" />
                 </Button>
-              )}
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Einstellungen
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Optionen</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onClick={() => setShowAppInfo(true)}>
-                    <Info className="mr-2 h-4 w-4" />
-                    App-Infos
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 rounded-xl shadow-lg">
+                <DropdownMenuLabel className="font-heading text-lg px-4 py-2">
+                  {user ? `Hallo, ${user.email}` : 'Menü'}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="flex items-center gap-3 px-4 py-2 text-base" onClick={() => setShowAppInfo(true)}>
+                  <Info className="w-5 h-5 text-accent" />
+                  <span>App-Infos</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 px-4 py-2 text-base" onClick={() => setShowCheckInHelp(true)}>
+                  <HelpCircle className="w-5 h-5 text-accent" />
+                  <span>Check-In Hilfe</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 px-4 py-2 text-base" onClick={() => setShowOnboarding(true)}>
+                  <TrendingUp className="w-5 h-5 text-accent" />
+                  <span>Onboarding wiederholen</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="px-4 py-2">
+                  <AccessibilitySettings />
+                </DropdownMenuItem>
+                <DropdownMenuItem className="px-4 py-2">
+                  <ThemeToggle />
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {user && (
+                  <div className="px-4 py-2">
+                    <ProfileSettings user={user} onProfileUpdate={checkUser} />
+                  </div>
+                )}
+                <DropdownMenuSeparator />
+                {user ? (
+                  <DropdownMenuItem className="flex items-center gap-3 px-4 py-2 text-base" onClick={() => supabase.auth.signOut()}>
+                    <User className="w-5 h-5" />
+                    <span>Abmelden</span>
                   </DropdownMenuItem>
-
-                  <DropdownMenuItem onClick={() => setShowCheckInHelp(true)}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Check-In Hilfe
+                ) : (
+                  <DropdownMenuItem className="flex items-center gap-3 px-4 py-2 text-base" onClick={() => setShowAuth(true)}>
+                    <User className="w-5 h-5" />
+                    <span>Anmelden / Registrieren</span>
                   </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onClick={() => setShowOnboarding(true)}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Onboarding wiederholen
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem>
-                    <AccessibilitySettings />
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem>
-                    <ThemeToggle />
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  {user && (
-                    <>
-                      <div className="px-2 py-1.5">
-                        <ProfileSettings user={user} onProfileUpdate={checkUser} />
-                      </div>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-
-                  {user ? (
-                    <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
-                      <User className="mr-2 h-4 w-4" />
-                      Abmelden
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem onClick={() => setShowAuth(true)}>
-                      <User className="mr-2 h-4 w-4" />
-                      Anmelden
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-
+      <main className="container mx-auto px-4 py-8 space-y-12">
+        {/* Suche und Filter */}
+        <Card className="rounded-2xl shadow-lg border-0">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+                <Input
+                  placeholder="Finde barrierefreie Orte..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-14 pr-4 py-6 rounded-full text-lg border-2 focus:border-primary transition-colors"
+                />
+              </div>
+              <SearchFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                totalResults={places.length}
+                filteredResults={filteredPlaces.length}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Statistiken */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <Card className="rounded-2xl bg-primary/10 border-0">
             <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-2xl font-bold">{places.length}</p>
-                  <p className="text-sm text-muted-foreground">Bewertete Orte</p>
-                </div>
-              </div>
+              <p className="text-4xl font-bold text-primary">{places.length}</p>
+              <p className="text-sm font-heading text-primary/80">Orte</p>
             </CardContent>
           </Card>
-
-          <Card>
+          <Card className="rounded-2xl bg-secondary/10 border-0">
             <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="text-2xl font-bold">
-                    {places.reduce((sum, place) => sum + place.review_count, 0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Bewertungen</p>
-                </div>
-              </div>
+              <p className="text-4xl font-bold text-secondary">{places.reduce((sum, place) => sum + place.review_count, 0)}</p>
+              <p className="text-sm font-heading text-secondary/80">Bewertungen</p>
             </CardContent>
           </Card>
-
-          <Card>
+          <Card className="rounded-2xl bg-accent/10 border-0">
             <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-purple-600" />
-                <div>
-                  <p className="text-2xl font-bold">
-                    {places.reduce((sum, place) => sum + place.checkin_review_count, 0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Check-In Bewertungen</p>
-                </div>
-              </div>
+              <p className="text-4xl font-bold text-accent">{places.reduce((sum, place) => sum + place.checkin_review_count, 0)}</p>
+              <p className="text-sm font-heading text-accent/80">Check-Ins</p>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Suche und Filter */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Nach Orten suchen..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <SearchFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            totalResults={places.length}
-            filteredResults={filteredPlaces.length}
-          />
-        </div>
-
-        {/* Navigation */}
-        <div className="flex gap-2 mb-6">
-          <Button variant="default">
-            <MapPin className="w-4 h-4 mr-2" />
-            Alle Orte
-          </Button>
-          <Button asChild variant="outline">
+           <Button asChild variant="outline" className="h-full rounded-2xl text-lg border-2">
             <Link href="/check-in-reviews">
-              <Shield className="w-4 h-4 mr-2" />
-              Check-In Bewertungen
+              <Shield className="w-6 h-6 mr-3" />
+              Alle Check-Ins
             </Link>
           </Button>
         </div>
 
         {/* Orte Liste */}
         {loading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3" />
+              <Card key={i} className="rounded-2xl overflow-hidden border-0 shadow-lg">
+                <CardContent className="p-6 space-y-4">
+                  <Skeleton className="h-7 w-3/4" />
+                  <Skeleton className="h-5 w-1/2" />
+                  <div className="flex justify-between items-center pt-4">
+                    <Skeleton className="h-8 w-1/4" />
+                    <Skeleton className="h-10 w-1/3 rounded-full" />
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : sortedPlaces.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Keine Orte gefunden</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm ? 'Versuchen Sie andere Suchbegriffe.' : 'Noch keine Orte bewertet.'}
+          <Card className="rounded-2xl shadow-lg border-0">
+            <CardContent className="p-12 text-center flex flex-col items-center">
+              <MapPin className="w-20 h-20 text-muted-foreground/50 mx-auto mb-6" />
+              <h3 className="text-3xl font-heading mb-4">Keine Orte gefunden</h3>
+              <p className="text-muted-foreground text-lg mb-8 max-w-md">
+                {searchTerm ? 'Deine Suche ergab leider keine Treffer. Probier es doch mit anderen Begriffen!' : 'Sei der Erste, der einen Ort bewertet und der Community hilft!'}
               </p>
               {user && (
-                <Button onClick={handleAddReview}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Erste Bewertung hinzufügen
+                <Button onClick={handleAddReview} size="lg" className="rounded-full gap-2 shadow-lg hover:shadow-xl transition-shadow">
+                  <Plus className="w-5 h-5" />
+                  Ersten Ort bewerten
                 </Button>
               )}
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {sortedPlaces.map((place) => (
-              <Card key={place.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex items-start justify-between">
-                    <Link href={`/place/${place.id}`} className="hover:underline flex-1">
-                      {place.name}
-                    </Link>
+              <Card key={place.id} className="rounded-2xl border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group">
+                <CardHeader className="p-6">
+                   <div className="flex items-start justify-between">
+                    <CardTitle className="text-2xl font-heading group-hover:text-primary transition-colors">
+                      <Link href={`/place/${place.id}`}>{place.name}</Link>
+                    </CardTitle>
                     {place.checkin_review_count > 0 && (
-                      <Badge variant="outline" className="ml-2">
-                        <Shield className="w-3 h-3 mr-1" />
+                      <Badge variant="secondary" className="rounded-full px-3 py-1 text-sm ml-2 flex-shrink-0">
+                        <Shield className="w-4 h-4 mr-1.5" />
                         Verifiziert
                       </Badge>
                     )}
-                  </CardTitle>
+                  </div>
                   {place.address && (
-                    <CardDescription className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
+                    <CardDescription className="flex items-center gap-2 pt-2 text-base">
+                      <MapPin className="w-4 h-4" />
                       {place.address}
                     </CardDescription>
                   )}
                 </CardHeader>
-
-                <CardContent>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="font-semibold">
-                        {place.avg_overall_rating?.toFixed(1) || '0.0'}
+                <CardContent className="p-6 pt-0">
+                  <div className="flex items-center justify-between text-lg">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+                      <span className="font-bold">
+                        {place.avg_overall_rating?.toFixed(1) || 'N/A'}
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        ({place.review_count} Reviews)
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Users className="w-3 h-3" />
-                      {place.review_count} Bewertungen
-                    </div>
+                    <Button asChild size="sm" className="rounded-full">
+                      <Link href={`/place/${place.id}`}>Details</Link>
+                    </Button>
                   </div>
-
-                  {place.review_count > 0 && (
-                    <div className="grid grid-cols-5 gap-2 mb-4 text-xs">
-                      {[
-                        { label: 'Rollstuhl', value: place.avg_wheelchair_access },
-                        { label: 'Eingang', value: place.avg_entrance_access },
-                        { label: 'WC', value: place.avg_bathroom_access },
-                        { label: 'Tische', value: place.avg_table_height },
-                        { label: 'Personal', value: place.avg_staff_helpfulness },
-                      ].map((item, index) => (
-                        <div key={index} className="text-center">
-                          <p className="text-muted-foreground">{item.label}</p>
-                          <p className="font-medium">{item.value?.toFixed(1) || 'N/A'}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <Button asChild variant="outline" size="sm" className="w-full">
-                    <Link href={`/place/${place.id}`}>
-                      Details ansehen
-                    </Link>
-                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -576,14 +510,15 @@ export default function HomePage() {
 
         {/* Call to Action für nicht angemeldete Benutzer */}
         {!user && (
-          <Card className="mt-8">
-            <CardContent className="p-8 text-center">
-              <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Bewertungen hinzufügen</h3>
-              <p className="text-muted-foreground mb-4">
-                Melden Sie sich an, um Orte zu bewerten und anderen zu helfen.
-              </p>
-              <Button onClick={() => setShowAuth(true)}>
+          <Card className="mt-12 rounded-3xl shadow-xl border-0 bg-gradient-to-br from-primary to-secondary text-primary-foreground">
+            <CardContent className="p-12 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+              <div className="max-w-2xl">
+                <h3 className="text-4xl font-heading mb-2">Werde Teil der Community!</h3>
+                <p className="text-lg opacity-90">
+                  Melde dich an, um Orte zu bewerten, neue Orte hinzuzufügen und dabei zu helfen, die Welt für alle zugänglicher zu machen.
+                </p>
+              </div>
+              <Button onClick={() => setShowAuth(true)} size="lg" className="rounded-full bg-white text-primary hover:bg-white/90 flex-shrink-0 px-8 py-6 text-lg shadow-lg">
                 Anmelden / Registrieren
               </Button>
             </CardContent>
@@ -591,18 +526,11 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Check-In Help Dialog */}
       <CheckInHelpDialog 
         open={showCheckInHelp} 
-        onOpenChange={(open) => {
-          setShowCheckInHelp(open)
-          if (!open && !hasSeenCheckInIntro) {
-            startCheckInProcess()
-          }
-        }} 
+        onOpenChange={handleCheckInHelpClose}
       />
 
-      {/* App Info Dialog */}
       <AppInfoDialog 
         open={showAppInfo} 
         onOpenChange={setShowAppInfo} 
